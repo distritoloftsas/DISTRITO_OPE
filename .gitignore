@@ -1,0 +1,42 @@
+# --- Variables de entorno y secretos ---
+.env
+.env.local
+*.env
+
+# --- Java / Maven ---
+distrito-backend/target/
+distrito-backend/.mvn/wrapper/maven-wrapper.jar
+distrito-backend/!**/src/main/**/target/
+distrito-backend/!**/src/test/**/target/
+
+# --- IDEs ---
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.vscode-server/
+*.swp
+*.swo
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Node / Vite ---
+node_modules/
+distrito-frontend/dist/
+distrito-frontend/dist-ssr/
+*.local
+.npm/
+.eslintcache
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Docker ---
+.docker/
