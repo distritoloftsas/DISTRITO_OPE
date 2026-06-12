@@ -4,6 +4,8 @@ Plataforma de gestión interna de Distrito Loft (lavandería estilo americano). 
 
 Complementa al sitio informativo público (`distritoloft.com`), que vive en otra carpeta y es estático.
 
+**Repositorio:** https://github.com/distritoloftsas/DISTRITO_OPE
+
 ## Estructura del proyecto
 
 ```
