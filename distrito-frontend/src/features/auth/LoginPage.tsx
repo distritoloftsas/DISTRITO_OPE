@@ -5,6 +5,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { useLogin } from "./useLogin";
 import { useAuthStore } from "../../store/authStore";
 import { rutaInicialPorRol } from "../../types/auth";
+import { PasswordInput } from "../../components/PasswordInput";
 
 const schema = z.object({
   email: z.string().min(1, "Requerido").email("Email inválido"),
@@ -69,11 +70,9 @@ export function LoginPage() {
         <div className="h-3" />
 
         <label className="block text-xs text-stone-600 mb-1">Contraseña</label>
-        <input
-          type="password"
+        <PasswordInput
           autoComplete="current-password"
           placeholder="••••••••"
-          className="w-full mb-1 px-3 py-2 text-sm border border-stone-300 rounded-lg focus:outline-none focus:border-distrito-gold-dark"
           {...register("password")}
         />
         {errors.password && (

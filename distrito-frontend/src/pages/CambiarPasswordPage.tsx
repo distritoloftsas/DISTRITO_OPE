@@ -73,15 +73,31 @@ export function CambiarPasswordPage() {
         <form onSubmit={submit} className="p-6 space-y-3">
           <div>
             <label className="block text-xs text-stone-600 mb-1">Contraseña actual</label>
-            <PasswordInput value={actual} onChange={setActual} required autoComplete="current-password" />
+            <PasswordInput
+              value={actual}
+              onChange={(e) => setActual(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
           </div>
           <div>
             <label className="block text-xs text-stone-600 mb-1">Nueva contraseña</label>
-            <PasswordInput value={nueva} onChange={setNueva} required autoComplete="new-password" minLength={8} />
+            <PasswordInput
+              value={nueva}
+              onChange={(e) => setNueva(e.target.value)}
+              required
+              autoComplete="new-password"
+              minLength={8}
+            />
           </div>
           <div>
             <label className="block text-xs text-stone-600 mb-1">Confirmar nueva contraseña</label>
-            <PasswordInput value={confirmar} onChange={setConfirmar} required autoComplete="new-password" />
+            <PasswordInput
+              value={confirmar}
+              onChange={(e) => setConfirmar(e.target.value)}
+              required
+              autoComplete="new-password"
+            />
           </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}

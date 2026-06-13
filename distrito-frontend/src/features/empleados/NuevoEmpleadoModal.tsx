@@ -62,7 +62,7 @@ export function NuevoEmpleadoModal({ onClose, onCreado }: Props) {
             <label className="block text-xs text-stone-600 mb-1">Contraseña inicial</label>
             <PasswordInput
               value={password}
-              onChange={setPassword}
+              onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
               autoComplete="new-password"
