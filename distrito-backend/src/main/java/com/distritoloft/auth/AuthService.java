@@ -4,6 +4,7 @@ import com.distritoloft.auth.dto.*;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
+import com.distritoloft.usuario.ClientePerfil;
 import com.distritoloft.usuario.Usuario;
 import com.distritoloft.usuario.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -70,6 +71,52 @@ public class AuthService {
         String token = jwtService.generarToken(usuario);
 
         return new AuthResponse(token, expirationMs, UsuarioResponse.from(usuario));
+    }
+
+    @Transactional
+    public AuthResponse registrarCliente(RegistroClienteRequest req) {
+        // Si ya existe un cliente rápido con ese teléfono (sin email ni password)
+        // hacemos "upgrade" agregándole email + password y un ClientePerfil si no lo tenía.
+        Usuario usuario = usuarioRepository.findByTelefono(req.telefono()).orElse(null);
+
+        if (usuario != null) {
+            if (usuario.getRol() != RolUsuario.CLIENTE) {
+                throw new ReglaNegocioException("Ese teléfono ya está registrado para otro tipo de cuenta.");
+            }
+            if (usuario.getEmail() != null && usuario.getPasswordHash() != null) {
+                throw new ReglaNegocioException("Ese teléfono ya tiene una cuenta activa. Inicia sesión.");
+            }
+            if (usuarioRepository.existsByEmail(req.email())) {
+                throw new ReglaNegocioException("Ya existe un usuario con ese email.");
+            }
+            usuario.setEmail(req.email());
+            usuario.setPasswordHash(passwordEncoder.encode(req.password()));
+            usuario.setNombre(req.nombre());
+        } else {
+            if (usuarioRepository.existsByEmail(req.email())) {
+                throw new ReglaNegocioException("Ya existe un usuario con ese email.");
+            }
+            usuario = new Usuario();
+            usuario.setEmail(req.email());
+            usuario.setNombre(req.nombre());
+            usuario.setTelefono(req.telefono());
+            usuario.setPasswordHash(passwordEncoder.encode(req.password()));
+            usuario.setRol(RolUsuario.CLIENTE);
+            usuario.setActivo(true);
+            usuario.setMustChangePassword(false);
+        }
+
+        if (usuario.getClientePerfil() == null) {
+            ClientePerfil perfil = new ClientePerfil();
+            perfil.setUsuario(usuario);
+            usuario.setClientePerfil(perfil);
+        }
+
+        Usuario guardado = usuarioRepository.save(usuario);
+        guardado.setUltimoLogin(OffsetDateTime.now());
+
+        String token = jwtService.generarToken(guardado);
+        return new AuthResponse(token, expirationMs, UsuarioResponse.from(guardado));
     }
 
     @Transactional

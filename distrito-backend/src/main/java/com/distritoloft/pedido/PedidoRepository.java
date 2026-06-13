@@ -36,6 +36,20 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
             """)
     List<Pedido> buscarConMaquinaAsignada(@Param("sedeId") Long sedeId);
 
+    @Query("""
+            SELECT p FROM Pedido p
+            JOIN FETCH p.cliente
+            JOIN FETCH p.sede
+            JOIN FETCH p.plan
+            LEFT JOIN FETCH p.lavadora
+            LEFT JOIN FETCH p.secadora
+            WHERE p.cliente.id = :clienteId
+              AND (:#{#estados == null || #estados.isEmpty()} = true OR p.estado IN :estados)
+            ORDER BY p.fechaRecepcion DESC
+            """)
+    List<Pedido> buscarPorCliente(@Param("clienteId") Long clienteId,
+                                  @Param("estados") List<EstadoPedido> estados);
+
     List<Pedido> findByClienteIdOrderByFechaRecepcionDesc(Long clienteId);
 
     @Query("""

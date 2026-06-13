@@ -25,6 +25,11 @@ public class AuthController {
         return authService.login(req);
     }
 
+    @PostMapping("/registro-cliente")
+    public ResponseEntity<AuthResponse> registroCliente(@Valid @RequestBody RegistroClienteRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrarCliente(req));
+    }
+
     @GetMapping("/me")
     public UsuarioResponse me(@AuthenticationPrincipal CustomUserDetails principal) {
         return authService.obtenerActual(principal.getUsuario().getId());

@@ -27,7 +27,7 @@ public class PedidoController {
     private final PagoService pagoService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN', 'CLIENTE')")
     public List<PedidoResponse> listar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(name = "sedeId", required = false) Long sedeId,
@@ -66,7 +66,7 @@ public class PedidoController {
     }
 
     @GetMapping("/{id}/historial")
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN', 'CLIENTE')")
     public List<HistorialEventoResponse> historial(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id

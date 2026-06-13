@@ -58,7 +58,14 @@ public class PedidoService {
         Usuario actual = cargarUsuarioActual(principal);
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado: " + pedidoId));
-        validarSedeDelEmpleado(actual, pedido);
+
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            if (!pedido.getCliente().getId().equals(actual.getId())) {
+                throw new ReglaNegocioException("No puedes ver este pedido.");
+            }
+        } else {
+            validarSedeDelEmpleado(actual, pedido);
+        }
 
         return historialRepository.findByPedidoIdOrderByFecha(pedidoId).stream()
                 .map(HistorialEventoResponse::from)
@@ -68,6 +75,13 @@ public class PedidoService {
     @Transactional(readOnly = true)
     public List<PedidoResponse> listar(CustomUserDetails principal, Long sedeIdParam, List<EstadoPedido> estados) {
         Usuario actual = cargarUsuarioActual(principal);
+
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            return pedidoRepository.buscarPorCliente(actual.getId(), estados).stream()
+                    .map(PedidoResponse::from)
+                    .toList();
+        }
+
         Long sedeId = resolverSede(actual, sedeIdParam);
         return pedidoRepository.buscar(sedeId, estados).stream()
                 .map(PedidoResponse::from)

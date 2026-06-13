@@ -6,6 +6,7 @@ import { EmpleadoPage } from "./pages/EmpleadoPage";
 import { GerentePage } from "./pages/GerentePage";
 import { AdminPage } from "./pages/AdminPage";
 import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
+import { RegistroClientePage } from "./pages/RegistroClientePage";
 import { useAuthStore } from "./store/authStore";
 import { rutaInicialPorRol } from "./types/auth";
 
@@ -23,6 +24,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/registro" element={<RegistroClientePage />} />
         <Route
           path="/cambiar-password"
           element={

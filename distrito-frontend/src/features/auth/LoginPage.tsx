@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, Link } from "react-router-dom";
 import { useLogin } from "./useLogin";
 import { useAuthStore } from "../../store/authStore";
 import { rutaInicialPorRol } from "../../types/auth";
@@ -110,7 +110,9 @@ export function LoginPage() {
 
         <p className="text-center text-xs text-stone-500 mt-5">
           ¿Eres nuevo?{" "}
-          <span className="text-distrito-gold-dark">Crear cuenta (próximamente)</span>
+          <Link to="/registro" className="text-distrito-gold-dark">
+            Crear cuenta de cliente
+          </Link>
         </p>
       </form>
     </div>
