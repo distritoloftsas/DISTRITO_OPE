@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCrearEmpleado } from "./useEmpleados";
 import { useAuthStore } from "../../store/authStore";
+import { PasswordInput } from "../../components/PasswordInput";
 import type { RolUsuario } from "../../types/auth";
 
 interface Props {
@@ -57,14 +58,19 @@ export function NuevoEmpleadoModal({ onClose, onCreado }: Props) {
             <Campo label="Teléfono" value={telefono} onChange={setTelefono} />
           </div>
           <Campo label="Cargo (opcional)" value={cargo} onChange={setCargo} />
-          <Campo
-            label="Contraseña inicial"
-            type="password"
-            value={password}
-            onChange={setPassword}
-            required
-            hint="El empleado deberá cambiarla en su primer ingreso (mín. 8 caracteres)."
-          />
+          <div>
+            <label className="block text-xs text-stone-600 mb-1">Contraseña inicial</label>
+            <PasswordInput
+              value={password}
+              onChange={setPassword}
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+            <p className="text-[10px] text-stone-500 mt-1">
+              El empleado deberá cambiarla en su primer ingreso (mín. 8 caracteres).
+            </p>
+          </div>
 
           {esSuper && (
             <div className="grid grid-cols-2 gap-3">

@@ -9,13 +9,17 @@ public record UsuarioResponse(
         String nombre,
         RolUsuario rol,
         Long sedeId,
+        String sedeNombre,
         Boolean mustChangePassword,
         Boolean activo
 ) {
     public static UsuarioResponse from(Usuario u) {
-        Long sedeId = (u.getEmpleadoPerfil() != null && u.getEmpleadoPerfil().getSede() != null)
-                ? u.getEmpleadoPerfil().getSede().getId()
-                : null;
+        Long sedeId = null;
+        String sedeNombre = null;
+        if (u.getEmpleadoPerfil() != null && u.getEmpleadoPerfil().getSede() != null) {
+            sedeId = u.getEmpleadoPerfil().getSede().getId();
+            sedeNombre = u.getEmpleadoPerfil().getSede().getNombre();
+        }
 
         return new UsuarioResponse(
                 u.getId(),
@@ -23,6 +27,7 @@ public record UsuarioResponse(
                 u.getNombre(),
                 u.getRol(),
                 sedeId,
+                sedeNombre,
                 u.getMustChangePassword(),
                 u.getActivo()
         );

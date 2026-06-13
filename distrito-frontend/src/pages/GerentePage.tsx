@@ -4,6 +4,7 @@ import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
 import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
 import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
+import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
 
 export function GerentePage() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -26,7 +27,9 @@ export function GerentePage() {
           <span className="text-distrito-gold font-medium tracking-widest text-sm">DL</span>
           <div>
             <p className="text-sm font-medium leading-none">Distrito Loft</p>
-            <p className="text-xs text-distrito-gold mt-1">Gerencia de sede</p>
+            <p className="text-xs text-distrito-gold mt-1">
+              Gerencia de sede{usuario.sedeNombre ? ` · ${usuario.sedeNombre}` : ""}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -66,6 +69,9 @@ export function GerentePage() {
         )}
 
         <EmpleadosTabla />
+
+        <h2 className="text-base font-medium mt-8 mb-4">Máquinas</h2>
+        <MantenimientoMaquinas />
       </main>
 
       {mostrarNuevo && (

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 import { rutaInicialPorRol, type Usuario } from "../types/auth";
+import { PasswordInput } from "../components/PasswordInput";
 
 export function CambiarPasswordPage() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -70,9 +71,18 @@ export function CambiarPasswordPage() {
         </header>
 
         <form onSubmit={submit} className="p-6 space-y-3">
-          <Campo label="Contraseña actual" value={actual} onChange={setActual} type="password" />
-          <Campo label="Nueva contraseña" value={nueva} onChange={setNueva} type="password" />
-          <Campo label="Confirmar nueva contraseña" value={confirmar} onChange={setConfirmar} type="password" />
+          <div>
+            <label className="block text-xs text-stone-600 mb-1">Contraseña actual</label>
+            <PasswordInput value={actual} onChange={setActual} required autoComplete="current-password" />
+          </div>
+          <div>
+            <label className="block text-xs text-stone-600 mb-1">Nueva contraseña</label>
+            <PasswordInput value={nueva} onChange={setNueva} required autoComplete="new-password" minLength={8} />
+          </div>
+          <div>
+            <label className="block text-xs text-stone-600 mb-1">Confirmar nueva contraseña</label>
+            <PasswordInput value={confirmar} onChange={setConfirmar} required autoComplete="new-password" />
+          </div>
 
           {error && <p className="text-xs text-red-600">{error}</p>}
 
@@ -99,27 +109,3 @@ export function CambiarPasswordPage() {
   );
 }
 
-function Campo({
-  label,
-  value,
-  onChange,
-  type,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type: string;
-}) {
-  return (
-    <div>
-      <label className="block text-xs text-stone-600 mb-1">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-        className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
-      />
-    </div>
-  );
-}
