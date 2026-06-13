@@ -5,6 +5,7 @@ import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.pedido.dto.CambioEstadoRequest;
 import com.distritoloft.pedido.dto.CrearPagoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
+import com.distritoloft.pedido.dto.HistorialEventoResponse;
 import com.distritoloft.pedido.dto.PagoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import jakarta.validation.Valid;
@@ -62,5 +63,14 @@ public class PedidoController {
             @Valid @RequestBody CrearPagoRequest req
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(pagoService.registrar(principal, id, req));
+    }
+
+    @GetMapping("/{id}/historial")
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    public List<HistorialEventoResponse> historial(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long id
+    ) {
+        return pedidoService.historial(principal, id);
     }
 }

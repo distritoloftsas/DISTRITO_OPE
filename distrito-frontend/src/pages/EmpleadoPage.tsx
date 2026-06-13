@@ -5,6 +5,7 @@ import { etiquetaRol } from "../types/auth";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
+import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 export function EmpleadoPage() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -12,6 +13,7 @@ export function EmpleadoPage() {
   const navigate = useNavigate();
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [ultimoQr, setUltimoQr] = useState<string | null>(null);
+  const [tab, setTab] = useState<"activos" | "cerrados">("activos");
 
   const cerrarSesion = () => {
     clearSession();
@@ -73,7 +75,16 @@ export function EmpleadoPage() {
 
         <PanelMaquinas />
 
-        <KanbanBoard />
+        <div className="flex gap-1 mb-3 border-b border-stone-200">
+          <TabBtn active={tab === "activos"} onClick={() => setTab("activos")}>
+            En curso
+          </TabBtn>
+          <TabBtn active={tab === "cerrados"} onClick={() => setTab("cerrados")}>
+            Cerrados
+          </TabBtn>
+        </div>
+
+        <KanbanBoard estados={tab === "activos" ? ESTADOS_KANBAN : ESTADOS_CERRADOS} />
       </main>
 
       {mostrarNuevo && (
@@ -86,5 +97,28 @@ export function EmpleadoPage() {
         />
       )}
     </div>
+  );
+}
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-4 py-2 -mb-px border-b-2 ${
+        active
+          ? "border-distrito-gold-dark text-distrito-black font-medium"
+          : "border-transparent text-stone-500 hover:text-stone-700"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

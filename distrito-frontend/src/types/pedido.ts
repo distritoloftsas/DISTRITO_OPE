@@ -63,6 +63,8 @@ export const ESTADOS_KANBAN: EstadoPedido[] = [
   "LISTO",
 ];
 
+export const ESTADOS_CERRADOS: EstadoPedido[] = ["ENTREGADO", "CANCELADO"];
+
 export function etiquetaEstado(estado: EstadoPedido): string {
   const labels: Record<EstadoPedido, string> = {
     RECIBIDO: "Recibidos",

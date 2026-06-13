@@ -11,6 +11,7 @@ import com.distritoloft.maquina.Maquina;
 import com.distritoloft.maquina.MaquinaRepository;
 import com.distritoloft.pedido.dto.CambioEstadoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
+import com.distritoloft.pedido.dto.HistorialEventoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.plan.PlanRepository;
@@ -37,6 +38,7 @@ public class PedidoService {
     private final UsuarioRepository usuarioRepository;
     private final PlanRepository planRepository;
     private final MaquinaRepository maquinaRepository;
+    private final PedidoEstadoHistorialRepository historialRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -50,6 +52,18 @@ public class PedidoService {
             EstadoPedido.ENTREGADO, Set.of(),
             EstadoPedido.CANCELADO, Set.of()
     );
+
+    @Transactional(readOnly = true)
+    public List<HistorialEventoResponse> historial(CustomUserDetails principal, Long pedidoId) {
+        Usuario actual = cargarUsuarioActual(principal);
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado: " + pedidoId));
+        validarSedeDelEmpleado(actual, pedido);
+
+        return historialRepository.findByPedidoIdOrderByFecha(pedidoId).stream()
+                .map(HistorialEventoResponse::from)
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<PedidoResponse> listar(CustomUserDetails principal, Long sedeIdParam, List<EstadoPedido> estados) {

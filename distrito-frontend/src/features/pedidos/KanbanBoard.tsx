@@ -4,6 +4,7 @@ import { useCambiarEstado } from "./useCambiarEstado";
 import { CobrarModal } from "./CobrarModal";
 import { CancelarModal } from "./CancelarModal";
 import { ElegirMaquinaModal } from "./ElegirMaquinaModal";
+import { HistorialPedidoModal } from "./HistorialPedidoModal";
 import { tipoParaSiguienteEstado } from "../../types/maquina";
 import {
   ESTADOS_KANBAN,
@@ -35,11 +36,16 @@ const formatoCOP = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-export function KanbanBoard() {
-  const { data, isLoading, isError, error } = usePedidos();
+interface KanbanBoardProps {
+  estados?: EstadoPedido[];
+}
+
+export function KanbanBoard({ estados = ESTADOS_KANBAN }: KanbanBoardProps = {}) {
+  const { data, isLoading, isError, error } = usePedidos({ estados });
   const [cobrarPedido, setCobrarPedido] = useState<PedidoResponse | null>(null);
   const [cancelarPedido, setCancelarPedido] = useState<PedidoResponse | null>(null);
   const [elegirMaquina, setElegirMaquina] = useState<ElegirMaquinaState | null>(null);
+  const [verPedido, setVerPedido] = useState<PedidoResponse | null>(null);
 
   if (isLoading) {
     return <p className="text-sm text-stone-500 text-center py-12">Cargando pedidos...</p>;
@@ -59,8 +65,12 @@ export function KanbanBoard() {
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-        {ESTADOS_KANBAN.map((estado) => {
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${
+          estados.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-2"
+        }`}
+      >
+        {estados.map((estado) => {
           const pedidos = porEstado(estado);
           return (
             <div key={estado}>
@@ -84,6 +94,7 @@ export function KanbanBoard() {
                     pedido={p}
                     onCobrar={() => setCobrarPedido(p)}
                     onCancelar={() => setCancelarPedido(p)}
+                    onVer={() => setVerPedido(p)}
                     onPedirMaquina={(siguiente, tipo) =>
                       setElegirMaquina({ pedido: p, siguiente, tipo })
                     }
@@ -120,6 +131,13 @@ export function KanbanBoard() {
           onAvanzado={() => setElegirMaquina(null)}
         />
       )}
+
+      {verPedido && (
+        <HistorialPedidoModal
+          pedido={verPedido}
+          onClose={() => setVerPedido(null)}
+        />
+      )}
     </>
   );
 }
@@ -128,11 +146,13 @@ function PedidoCard({
   pedido,
   onCobrar,
   onCancelar,
+  onVer,
   onPedirMaquina,
 }: {
   pedido: PedidoResponse;
   onCobrar: () => void;
   onCancelar: () => void;
+  onVer: () => void;
   onPedirMaquina: (siguiente: EstadoPedido, tipo: "LAVADORA" | "SECADORA") => void;
 }) {
   const colorClasses = COLOR_POR_ESTADO[pedido.estado];
@@ -162,7 +182,13 @@ function PedidoCard({
   return (
     <div className={`border rounded-lg p-2.5 mb-2 ${colorClasses}`}>
       <div className="flex justify-between items-start mb-1">
-        <p className="text-[11px] font-medium">{pedido.codigoQr}</p>
+        <button
+          onClick={onVer}
+          className="text-[11px] font-medium hover:underline"
+          title="Ver historial"
+        >
+          {pedido.codigoQr}
+        </button>
         {pedido.estado === "RECIBIDO" && (
           <span
             className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
