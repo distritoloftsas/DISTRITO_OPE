@@ -23,9 +23,6 @@ public class ClientePerfil {
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
-    @Column(nullable = false, length = 120)
-    private String nombre;
-
     @Column(name = "direccion_principal", columnDefinition = "TEXT")
     private String direccionPrincipal;
 

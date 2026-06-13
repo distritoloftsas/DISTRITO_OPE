@@ -1,0 +1,52 @@
+### Plantilla de peticiones para REST Client (VS Code).
+### Copia este archivo como `requests.http` y reemplaza los placeholders.
+### El archivo `requests.http` está en .gitignore para no subir credenciales.
+
+### Health check
+GET http://localhost:8080/actuator/health
+
+### Listar planes (público)
+GET http://localhost:8080/api/planes
+
+###
+### ----- AUTH -----
+###
+
+### Setup del primer SUPER_ADMIN (solo funciona si la DB no tiene usuarios)
+POST http://localhost:8080/api/auth/setup
+Content-Type: application/json
+
+{
+  "nombre": "TU_NOMBRE",
+  "password": "TU_PASSWORD_SEGURA",
+  "telefono": "+57 300 000 0000"
+}
+
+### Login
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "distritoloftsas@gmail.com",
+  "password": "TU_PASSWORD_SEGURA"
+}
+
+### Mi usuario actual (requiere token)
+# Reemplaza TU_TOKEN_AQUI con el token que devolvió /setup o /login
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer TU_TOKEN_AQUI
+
+### Registrar un empleado (requiere token de SUPER_ADMIN o GERENTE_SEDE)
+POST http://localhost:8080/api/auth/registro-empleado
+Content-Type: application/json
+Authorization: Bearer TU_TOKEN_AQUI
+
+{
+  "email": "empleado@distritoloft.com",
+  "password": "PasswordEmpleado2026",
+  "nombre": "Nombre Empleado",
+  "telefono": "+57 311 222 3344",
+  "sedeId": 1,
+  "cargo": "Operario",
+  "rol": "EMPLEADO"
+}

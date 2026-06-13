@@ -28,9 +28,6 @@ public class EmpleadoPerfil {
     @JoinColumn(name = "sede_id", nullable = false)
     private Sede sede;
 
-    @Column(nullable = false, length = 120)
-    private String nombre;
-
     @Column(length = 60)
     private String cargo;
 

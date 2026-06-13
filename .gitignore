@@ -40,3 +40,6 @@ yarn-error.log*
 
 # --- Docker ---
 .docker/
+
+# --- REST Client (contiene credenciales reales) ---
+requests.http
