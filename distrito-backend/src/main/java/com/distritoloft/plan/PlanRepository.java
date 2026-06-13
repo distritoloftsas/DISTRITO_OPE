@@ -7,4 +7,6 @@ import java.util.List;
 public interface PlanRepository extends JpaRepository<Plan, Long> {
 
     List<Plan> findByActivoTrueOrderByOrdenAsc();
+
+    List<Plan> findAllByOrderByOrdenAsc();
 }
