@@ -23,16 +23,16 @@ public class Usuario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 120)
+    @Column(unique = true, length = 120)
     private String email;
 
     @Column(nullable = false, length = 120)
     private String nombre;
 
-    @Column(length = 20)
+    @Column(unique = true, length = 20)
     private String telefono;
 
-    @Column(name = "password_hash", nullable = false, length = 120)
+    @Column(name = "password_hash", length = 120)
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
