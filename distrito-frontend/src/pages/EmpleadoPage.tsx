@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
+import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 
 export function EmpleadoPage() {
   const usuario = useAuthStore((s) => s.usuario);
   const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
+  const [mostrarNuevo, setMostrarNuevo] = useState(false);
+  const [ultimoQr, setUltimoQr] = useState<string | null>(null);
 
   const cerrarSesion = () => {
     clearSession();
@@ -45,14 +49,39 @@ export function EmpleadoPage() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-medium">Tablero de pedidos</h2>
           <button
-            disabled
-            className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md opacity-50 cursor-not-allowed"
+            onClick={() => setMostrarNuevo(true)}
+            className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
           >
-            + Nuevo pedido (próximamente)
+            + Nuevo pedido
           </button>
         </div>
+
+        {ultimoQr && (
+          <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4 flex justify-between items-center">
+            <span>
+              ✓ Pedido <strong>{ultimoQr}</strong> creado.
+            </span>
+            <button
+              onClick={() => setUltimoQr(null)}
+              className="text-green-700 text-xs"
+            >
+              cerrar
+            </button>
+          </div>
+        )}
+
         <KanbanBoard />
       </main>
+
+      {mostrarNuevo && (
+        <NuevoPedidoModal
+          onClose={() => setMostrarNuevo(false)}
+          onCreado={(qr) => {
+            setUltimoQr(qr);
+            setMostrarNuevo(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -2,14 +2,15 @@ package com.distritoloft.pedido;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.pedido.dto.CrearPedidoRequest;
 import com.distritoloft.pedido.dto.PedidoResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -28,5 +29,14 @@ public class PedidoController {
             @RequestParam(name = "estado", required = false) List<EstadoPedido> estados
     ) {
         return pedidoService.listar(principal, sedeId, estados);
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ResponseEntity<PedidoResponse> crear(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody CrearPedidoRequest req
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.crear(principal, req));
     }
 }
