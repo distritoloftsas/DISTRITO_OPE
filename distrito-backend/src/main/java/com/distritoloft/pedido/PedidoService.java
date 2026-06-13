@@ -5,11 +5,13 @@ import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
+import com.distritoloft.pedido.dto.CambioEstadoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.plan.PlanRepository;
 import com.distritoloft.sede.Sede;
+import com.distritoloft.usuario.ClientePerfil;
 import com.distritoloft.usuario.Usuario;
 import com.distritoloft.usuario.UsuarioRepository;
 import jakarta.persistence.EntityManager;
@@ -20,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +35,16 @@ public class PedidoService {
 
     @PersistenceContext
     private EntityManager em;
+
+    private static final Map<EstadoPedido, Set<EstadoPedido>> TRANSICIONES_VALIDAS = Map.of(
+            EstadoPedido.RECIBIDO,  Set.of(EstadoPedido.LAVANDO, EstadoPedido.CANCELADO),
+            EstadoPedido.LAVANDO,   Set.of(EstadoPedido.SECANDO, EstadoPedido.CANCELADO),
+            EstadoPedido.SECANDO,   Set.of(EstadoPedido.DOBLANDO, EstadoPedido.LISTO, EstadoPedido.CANCELADO),
+            EstadoPedido.DOBLANDO,  Set.of(EstadoPedido.LISTO, EstadoPedido.CANCELADO),
+            EstadoPedido.LISTO,     Set.of(EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO),
+            EstadoPedido.ENTREGADO, Set.of(),
+            EstadoPedido.CANCELADO, Set.of()
+    );
 
     @Transactional(readOnly = true)
     public List<PedidoResponse> listar(CustomUserDetails principal, Long sedeIdParam, List<EstadoPedido> estados) {
@@ -76,19 +90,98 @@ public class PedidoService {
         pedido.setPlan(plan);
         pedido.setEstado(EstadoPedido.RECIBIDO);
         pedido.setTotal(plan.getPrecio());
+        pedido.setPagado(false);
         pedido.setObservaciones(req.observaciones());
         pedido.setFechaEntregaEstimada(entregaEstimada);
         pedido.setCreadoPorEmpleado(empleado);
 
         Pedido guardado = pedidoRepository.save(pedido);
 
-        PedidoEstadoHistorial historial = new PedidoEstadoHistorial();
-        historial.setPedido(guardado);
-        historial.setEstado(EstadoPedido.RECIBIDO);
-        historial.setEmpleado(empleado);
-        em.persist(historial);
+        registrarHistorial(guardado, EstadoPedido.RECIBIDO, empleado, null);
 
         return PedidoResponse.from(guardado);
+    }
+
+    @Transactional
+    public PedidoResponse cambiarEstado(CustomUserDetails principal, Long pedidoId, CambioEstadoRequest req) {
+        Usuario empleado = cargarUsuarioActual(principal);
+
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado: " + pedidoId));
+
+        validarSedeDelEmpleado(empleado, pedido);
+
+        EstadoPedido actual = pedido.getEstado();
+        EstadoPedido nuevo = aplicarSaltoDoblado(pedido, req.nuevoEstado());
+
+        validarTransicion(actual, nuevo);
+        validarReglasEspeciales(pedido, nuevo, req.observacion());
+
+        pedido.setEstado(nuevo);
+
+        if (nuevo == EstadoPedido.ENTREGADO) {
+            pedido.setFechaEntregaReal(OffsetDateTime.now());
+            incrementarLavadosCliente(pedido.getCliente());
+        }
+
+        Pedido guardado = pedidoRepository.save(pedido);
+        registrarHistorial(guardado, nuevo, empleado, req.observacion());
+
+        return PedidoResponse.from(guardado);
+    }
+
+    private void validarTransicion(EstadoPedido actual, EstadoPedido nuevo) {
+        Set<EstadoPedido> permitidos = TRANSICIONES_VALIDAS.getOrDefault(actual, Set.of());
+        if (!permitidos.contains(nuevo)) {
+            throw new ReglaNegocioException(
+                    "Transición no permitida: de " + actual + " no se puede pasar a " + nuevo + "."
+            );
+        }
+    }
+
+    private void validarReglasEspeciales(Pedido pedido, EstadoPedido nuevo, String observacion) {
+        if (pedido.getEstado() == EstadoPedido.RECIBIDO && nuevo == EstadoPedido.LAVANDO) {
+            if (!Boolean.TRUE.equals(pedido.getPagado())) {
+                throw new ReglaNegocioException("No se puede iniciar el lavado: el pedido aún no ha sido pagado.");
+            }
+        }
+
+        if (nuevo == EstadoPedido.CANCELADO && (observacion == null || observacion.isBlank())) {
+            throw new ReglaNegocioException("Para cancelar un pedido es obligatorio indicar una observación.");
+        }
+    }
+
+    private EstadoPedido aplicarSaltoDoblado(Pedido pedido, EstadoPedido nuevo) {
+        if (nuevo == EstadoPedido.DOBLANDO
+                && !Boolean.TRUE.equals(pedido.getPlan().getIncluyeDoblado())) {
+            return EstadoPedido.LISTO;
+        }
+        return nuevo;
+    }
+
+    private void validarSedeDelEmpleado(Usuario empleado, Pedido pedido) {
+        if (empleado.getRol() == RolUsuario.SUPER_ADMIN) return;
+
+        Sede sedeEmpleado = sedeDelEmpleado(empleado);
+        if (!sedeEmpleado.getId().equals(pedido.getSede().getId())) {
+            throw new ReglaNegocioException("No puedes operar sobre pedidos de otra sede.");
+        }
+    }
+
+    private void incrementarLavadosCliente(Usuario cliente) {
+        ClientePerfil perfil = cliente.getClientePerfil();
+        if (perfil != null) {
+            perfil.setLavadosAcumulados(perfil.getLavadosAcumulados() + 1);
+        }
+    }
+
+    private void registrarHistorial(Pedido pedido, EstadoPedido estado, Usuario empleado, String observacion) {
+        PedidoEstadoHistorial historial = new PedidoEstadoHistorial();
+        historial.setPedido(pedido);
+        historial.setEstado(estado);
+        historial.setEmpleado(empleado);
+        historial.setObservacion(observacion);
+        em.persist(historial);
     }
 
     private Usuario cargarUsuarioActual(CustomUserDetails principal) {

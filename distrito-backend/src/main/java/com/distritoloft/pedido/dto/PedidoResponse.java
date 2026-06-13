@@ -14,6 +14,7 @@ public record PedidoResponse(
         PlanResumen plan,
         EstadoPedido estado,
         BigDecimal total,
+        Boolean pagado,
         String observaciones,
         OffsetDateTime fechaRecepcion,
         OffsetDateTime fechaEntregaEstimada,
@@ -21,7 +22,7 @@ public record PedidoResponse(
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
     public record SedeResumen(Long id, String nombre) {}
-    public record PlanResumen(Long id, String nombre, BigDecimal precio) {}
+    public record PlanResumen(Long id, String nombre, BigDecimal precio, Boolean incluyeDoblado, Boolean incluyeDomicilio) {}
 
     public static PedidoResponse from(Pedido p) {
         return new PedidoResponse(
@@ -29,9 +30,16 @@ public record PedidoResponse(
                 p.getCodigoQr(),
                 new ClienteResumen(p.getCliente().getId(), p.getCliente().getNombre(), p.getCliente().getTelefono()),
                 new SedeResumen(p.getSede().getId(), p.getSede().getNombre()),
-                new PlanResumen(p.getPlan().getId(), p.getPlan().getNombre(), p.getPlan().getPrecio()),
+                new PlanResumen(
+                        p.getPlan().getId(),
+                        p.getPlan().getNombre(),
+                        p.getPlan().getPrecio(),
+                        p.getPlan().getIncluyeDoblado(),
+                        p.getPlan().getIncluyeDomicilio()
+                ),
                 p.getEstado(),
                 p.getTotal(),
+                p.getPagado(),
                 p.getObservaciones(),
                 p.getFechaRecepcion(),
                 p.getFechaEntregaEstimada(),

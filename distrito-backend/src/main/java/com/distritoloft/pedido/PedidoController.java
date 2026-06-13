@@ -2,7 +2,10 @@ package com.distritoloft.pedido;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.pedido.dto.CambioEstadoRequest;
+import com.distritoloft.pedido.dto.CrearPagoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
+import com.distritoloft.pedido.dto.PagoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.util.List;
 public class PedidoController {
 
     private final PedidoService pedidoService;
+    private final PagoService pagoService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
@@ -38,5 +42,25 @@ public class PedidoController {
             @Valid @RequestBody CrearPedidoRequest req
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoService.crear(principal, req));
+    }
+
+    @PatchMapping("/{id}/estado")
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    public PedidoResponse cambiarEstado(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long id,
+            @Valid @RequestBody CambioEstadoRequest req
+    ) {
+        return pedidoService.cambiarEstado(principal, id, req);
+    }
+
+    @PostMapping("/{id}/pagos")
+    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ResponseEntity<PagoResponse> registrarPago(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long id,
+            @Valid @RequestBody CrearPagoRequest req
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(pagoService.registrar(principal, id, req));
     }
 }

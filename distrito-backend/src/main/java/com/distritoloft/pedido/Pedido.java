@@ -50,6 +50,9 @@ public class Pedido {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    @Column(nullable = false)
+    private Boolean pagado = false;
+
     @Column(columnDefinition = "TEXT")
     private String observaciones;
 
