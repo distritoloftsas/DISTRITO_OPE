@@ -5,6 +5,7 @@ import { etiquetaRol } from "../types/auth";
 import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
 import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
+import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 
 export function GerentePage() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -72,6 +73,10 @@ export function GerentePage() {
 
         <h2 className="text-base font-medium mt-8 mb-4">Máquinas</h2>
         <MantenimientoMaquinas />
+
+        <div className="mt-8">
+          <CierreCajaSection />
+        </div>
       </main>
 
       {mostrarNuevo && (

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,4 +37,26 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> buscarConMaquinaAsignada(@Param("sedeId") Long sedeId);
 
     List<Pedido> findByClienteIdOrderByFechaRecepcionDesc(Long clienteId);
+
+    @Query("""
+            SELECT COUNT(p) FROM Pedido p
+            WHERE p.sede.id = :sedeId
+              AND p.estado = :estado
+              AND p.fechaRecepcion >= :desde AND p.fechaRecepcion < :hasta
+            """)
+    long contarPorSedeEstadoYFechaRecepcion(@Param("sedeId") Long sedeId,
+                                            @Param("estado") EstadoPedido estado,
+                                            @Param("desde") OffsetDateTime desde,
+                                            @Param("hasta") OffsetDateTime hasta);
+
+    @Query("""
+            SELECT COUNT(p) FROM Pedido p
+            WHERE p.sede.id = :sedeId
+              AND p.estado = :estado
+              AND p.fechaEntregaReal >= :desde AND p.fechaEntregaReal < :hasta
+            """)
+    long contarPorEstadoYFechaEntregaReal(@Param("sedeId") Long sedeId,
+                                          @Param("estado") EstadoPedido estado,
+                                          @Param("desde") OffsetDateTime desde,
+                                          @Param("hasta") OffsetDateTime hasta);
 }
