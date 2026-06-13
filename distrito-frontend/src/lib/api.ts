@@ -1,10 +1,19 @@
 import axios from "axios";
+import { useAuthStore } from "../store/authStore";
 
 export const api = axios.create({
   baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 api.interceptors.response.use(
@@ -15,6 +24,14 @@ api.interceptors.response.use(
         `[API] ${error.response.status} ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
         error.response.data
       );
+
+      if (error.response.status === 401) {
+        const wasAuthenticated = !!useAuthStore.getState().token;
+        useAuthStore.getState().clearSession();
+        if (wasAuthenticated && !window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
+      }
     } else {
       console.error("[API] Network or unknown error:", error.message);
     }
