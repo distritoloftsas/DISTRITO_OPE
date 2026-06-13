@@ -1,10 +1,14 @@
 package com.distritoloft.pedido;
 
 import com.distritoloft.auth.CustomUserDetails;
+import com.distritoloft.common.enums.EstadoMaquina;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.RolUsuario;
+import com.distritoloft.common.enums.TipoMaquina;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
+import com.distritoloft.maquina.Maquina;
+import com.distritoloft.maquina.MaquinaRepository;
 import com.distritoloft.pedido.dto.CambioEstadoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
 import com.distritoloft.pedido.dto.PedidoResponse;
@@ -32,6 +36,7 @@ public class PedidoService {
     private final PedidoRepository pedidoRepository;
     private final UsuarioRepository usuarioRepository;
     private final PlanRepository planRepository;
+    private final MaquinaRepository maquinaRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -117,6 +122,8 @@ public class PedidoService {
         validarTransicion(actual, nuevo);
         validarReglasEspeciales(pedido, nuevo, req.observacion());
 
+        gestionarMaquinas(pedido, actual, nuevo, req.maquinaId());
+
         pedido.setEstado(nuevo);
 
         if (nuevo == EstadoPedido.ENTREGADO) {
@@ -128,6 +135,71 @@ public class PedidoService {
         registrarHistorial(guardado, nuevo, empleado, req.observacion());
 
         return PedidoResponse.from(guardado);
+    }
+
+    private void gestionarMaquinas(Pedido pedido, EstadoPedido actual, EstadoPedido nuevo, Long maquinaId) {
+        // Salida de LAVANDO: liberar lavadora si estaba asignada
+        if (actual == EstadoPedido.LAVANDO && nuevo != EstadoPedido.LAVANDO) {
+            liberarMaquina(pedido.getLavadora());
+            pedido.setLavadora(null);
+        }
+        // Salida de SECANDO: liberar secadora
+        if (actual == EstadoPedido.SECANDO && nuevo != EstadoPedido.SECANDO) {
+            liberarMaquina(pedido.getSecadora());
+            pedido.setSecadora(null);
+        }
+
+        // Entrada a LAVANDO: requiere lavadora
+        if (nuevo == EstadoPedido.LAVANDO && actual != EstadoPedido.LAVANDO) {
+            Maquina lavadora = asignarMaquina(pedido, maquinaId, TipoMaquina.LAVADORA);
+            pedido.setLavadora(lavadora);
+        }
+        // Entrada a SECANDO: requiere secadora
+        if (nuevo == EstadoPedido.SECANDO && actual != EstadoPedido.SECANDO) {
+            Maquina secadora = asignarMaquina(pedido, maquinaId, TipoMaquina.SECADORA);
+            pedido.setSecadora(secadora);
+        }
+
+        // CANCELADO desde cualquier estado: liberar todo lo asignado
+        if (nuevo == EstadoPedido.CANCELADO) {
+            if (pedido.getLavadora() != null) {
+                liberarMaquina(pedido.getLavadora());
+                pedido.setLavadora(null);
+            }
+            if (pedido.getSecadora() != null) {
+                liberarMaquina(pedido.getSecadora());
+                pedido.setSecadora(null);
+            }
+        }
+    }
+
+    private Maquina asignarMaquina(Pedido pedido, Long maquinaId, TipoMaquina tipoEsperado) {
+        if (maquinaId == null) {
+            throw new ReglaNegocioException(
+                    "Debe seleccionar una " + tipoEsperado.name().toLowerCase() + " antes de avanzar.");
+        }
+        Maquina m = maquinaRepository.findById(maquinaId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Máquina no encontrada: " + maquinaId));
+        if (!m.getSede().getId().equals(pedido.getSede().getId())) {
+            throw new ReglaNegocioException("La máquina seleccionada no pertenece a esta sede.");
+        }
+        if (m.getTipo() != tipoEsperado) {
+            throw new ReglaNegocioException(
+                    "La máquina seleccionada no es una " + tipoEsperado.name().toLowerCase() + ".");
+        }
+        if (m.getEstado() != EstadoMaquina.LIBRE) {
+            throw new ReglaNegocioException(
+                    tipoEsperado + " " + m.getNumero() + " no está disponible (" + m.getEstado() + ").");
+        }
+        m.setEstado(EstadoMaquina.OCUPADA);
+        return m;
+    }
+
+    private void liberarMaquina(Maquina m) {
+        if (m == null) return;
+        if (m.getEstado() == EstadoMaquina.OCUPADA) {
+            m.setEstado(EstadoMaquina.LIBRE);
+        }
     }
 
     private void validarTransicion(EstadoPedido actual, EstadoPedido nuevo) {

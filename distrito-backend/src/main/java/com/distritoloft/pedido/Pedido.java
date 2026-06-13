@@ -1,6 +1,7 @@
 package com.distritoloft.pedido;
 
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.maquina.Maquina;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.sede.Sede;
 import com.distritoloft.usuario.Usuario;
@@ -69,6 +70,14 @@ public class Pedido {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creado_por_empleado_id")
     private Usuario creadoPorEmpleado;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lavadora_id")
+    private Maquina lavadora;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "secadora_id")
+    private Maquina secadora;
 
     @UpdateTimestamp
     @Column(name = "actualizado_en", nullable = false)

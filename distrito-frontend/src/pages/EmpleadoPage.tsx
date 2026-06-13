@@ -4,6 +4,7 @@ import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
+import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 
 export function EmpleadoPage() {
   const usuario = useAuthStore((s) => s.usuario);
@@ -69,6 +70,8 @@ export function EmpleadoPage() {
             </button>
           </div>
         )}
+
+        <PanelMaquinas />
 
         <KanbanBoard />
       </main>

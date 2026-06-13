@@ -28,6 +28,14 @@ export interface PedidoResponse {
   fechaRecepcion: string;
   fechaEntregaEstimada: string | null;
   fechaEntregaReal: string | null;
+  lavadora: MaquinaRefResumen | null;
+  secadora: MaquinaRefResumen | null;
+}
+
+export interface MaquinaRefResumen {
+  id: number;
+  tipo: "LAVADORA" | "SECADORA";
+  numero: number;
 }
 
 export function siguienteEstado(p: PedidoResponse): EstadoPedido | null {

@@ -1,6 +1,8 @@
 package com.distritoloft.pedido.dto;
 
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.common.enums.TipoMaquina;
+import com.distritoloft.maquina.Maquina;
 import com.distritoloft.pedido.Pedido;
 
 import java.math.BigDecimal;
@@ -18,11 +20,14 @@ public record PedidoResponse(
         String observaciones,
         OffsetDateTime fechaRecepcion,
         OffsetDateTime fechaEntregaEstimada,
-        OffsetDateTime fechaEntregaReal
+        OffsetDateTime fechaEntregaReal,
+        MaquinaResumen lavadora,
+        MaquinaResumen secadora
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
     public record SedeResumen(Long id, String nombre) {}
     public record PlanResumen(Long id, String nombre, BigDecimal precio, Boolean incluyeDoblado, Boolean incluyeDomicilio) {}
+    public record MaquinaResumen(Long id, TipoMaquina tipo, Short numero) {}
 
     public static PedidoResponse from(Pedido p) {
         return new PedidoResponse(
@@ -43,7 +48,14 @@ public record PedidoResponse(
                 p.getObservaciones(),
                 p.getFechaRecepcion(),
                 p.getFechaEntregaEstimada(),
-                p.getFechaEntregaReal()
+                p.getFechaEntregaReal(),
+                resumen(p.getLavadora()),
+                resumen(p.getSecadora())
         );
+    }
+
+    private static MaquinaResumen resumen(Maquina m) {
+        if (m == null) return null;
+        return new MaquinaResumen(m.getId(), m.getTipo(), m.getNumero());
     }
 }

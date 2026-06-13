@@ -3,6 +3,8 @@ import { usePedidos } from "./usePedidos";
 import { useCambiarEstado } from "./useCambiarEstado";
 import { CobrarModal } from "./CobrarModal";
 import { CancelarModal } from "./CancelarModal";
+import { ElegirMaquinaModal } from "./ElegirMaquinaModal";
+import { tipoParaSiguienteEstado } from "../../types/maquina";
 import {
   ESTADOS_KANBAN,
   etiquetaEstado,
@@ -10,6 +12,12 @@ import {
   type EstadoPedido,
   type PedidoResponse,
 } from "../../types/pedido";
+
+interface ElegirMaquinaState {
+  pedido: PedidoResponse;
+  siguiente: EstadoPedido;
+  tipo: "LAVADORA" | "SECADORA";
+}
 
 const COLOR_POR_ESTADO: Record<EstadoPedido, string> = {
   RECIBIDO: "bg-pink-50 border-pink-200 text-pink-900",
@@ -31,6 +39,7 @@ export function KanbanBoard() {
   const { data, isLoading, isError, error } = usePedidos();
   const [cobrarPedido, setCobrarPedido] = useState<PedidoResponse | null>(null);
   const [cancelarPedido, setCancelarPedido] = useState<PedidoResponse | null>(null);
+  const [elegirMaquina, setElegirMaquina] = useState<ElegirMaquinaState | null>(null);
 
   if (isLoading) {
     return <p className="text-sm text-stone-500 text-center py-12">Cargando pedidos...</p>;
@@ -75,6 +84,9 @@ export function KanbanBoard() {
                     pedido={p}
                     onCobrar={() => setCobrarPedido(p)}
                     onCancelar={() => setCancelarPedido(p)}
+                    onPedirMaquina={(siguiente, tipo) =>
+                      setElegirMaquina({ pedido: p, siguiente, tipo })
+                    }
                   />
                 ))
               )}
@@ -98,6 +110,16 @@ export function KanbanBoard() {
           onCancelado={() => setCancelarPedido(null)}
         />
       )}
+
+      {elegirMaquina && (
+        <ElegirMaquinaModal
+          pedido={elegirMaquina.pedido}
+          siguiente={elegirMaquina.siguiente}
+          tipo={elegirMaquina.tipo}
+          onClose={() => setElegirMaquina(null)}
+          onAvanzado={() => setElegirMaquina(null)}
+        />
+      )}
     </>
   );
 }
@@ -106,10 +128,12 @@ function PedidoCard({
   pedido,
   onCobrar,
   onCancelar,
+  onPedirMaquina,
 }: {
   pedido: PedidoResponse;
   onCobrar: () => void;
   onCancelar: () => void;
+  onPedirMaquina: (siguiente: EstadoPedido, tipo: "LAVADORA" | "SECADORA") => void;
 }) {
   const colorClasses = COLOR_POR_ESTADO[pedido.estado];
   const cambiar = useCambiarEstado();
@@ -120,8 +144,20 @@ function PedidoCard({
 
   const avanzar = () => {
     if (!siguiente) return;
+    const tipoNecesario = tipoParaSiguienteEstado(siguiente);
+    if (tipoNecesario) {
+      onPedirMaquina(siguiente, tipoNecesario);
+      return;
+    }
     cambiar.mutate({ pedidoId: pedido.id, nuevoEstado: siguiente });
   };
+
+  const maquinaActual =
+    pedido.estado === "LAVANDO"
+      ? pedido.lavadora
+      : pedido.estado === "SECANDO"
+      ? pedido.secadora
+      : null;
 
   return (
     <div className={`border rounded-lg p-2.5 mb-2 ${colorClasses}`}>
@@ -142,6 +178,11 @@ function PedidoCard({
 
       <p className="text-xs truncate">{pedido.cliente.nombre}</p>
       <p className="text-[10px] opacity-80 truncate">{pedido.plan.nombre}</p>
+      {maquinaActual && (
+        <p className="text-[10px] font-medium mt-0.5">
+          {maquinaActual.tipo === "LAVADORA" ? "Lav" : "Sec"} {maquinaActual.numero}
+        </p>
+      )}
       <p className="text-[10px] opacity-70 mt-1 mb-2">{formatoCOP.format(pedido.total)}</p>
 
       <div className="flex gap-1">
