@@ -30,4 +30,15 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             ORDER BY u.nombre
             """)
     List<Usuario> buscarClientes(@Param("q") String q, @Param("rol") RolUsuario rol);
+
+    @Query("""
+            SELECT u FROM Usuario u
+            LEFT JOIN FETCH u.empleadoPerfil ep
+            LEFT JOIN FETCH ep.sede
+            WHERE u.rol IN :roles
+              AND (:sedeId IS NULL OR ep.sede.id = :sedeId)
+            ORDER BY u.activo DESC, u.nombre
+            """)
+    List<Usuario> listarEmpleados(@Param("roles") List<RolUsuario> roles,
+                                  @Param("sedeId") Long sedeId);
 }

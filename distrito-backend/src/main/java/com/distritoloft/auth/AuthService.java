@@ -4,9 +4,6 @@ import com.distritoloft.auth.dto.*;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
-import com.distritoloft.sede.Sede;
-import com.distritoloft.sede.SedeRepository;
-import com.distritoloft.usuario.EmpleadoPerfil;
 import com.distritoloft.usuario.Usuario;
 import com.distritoloft.usuario.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +22,6 @@ import java.time.OffsetDateTime;
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
-    private final SedeRepository sedeRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -77,34 +73,20 @@ public class AuthService {
     }
 
     @Transactional
-    public UsuarioResponse registrarEmpleado(RegistroEmpleadoRequest req) {
-        if (req.rol() != RolUsuario.EMPLEADO && req.rol() != RolUsuario.GERENTE_SEDE) {
-            throw new ReglaNegocioException("Solo se pueden registrar usuarios con rol EMPLEADO o GERENTE_SEDE por esta vía.");
+    public UsuarioResponse cambiarPassword(Long usuarioId, CambiarPasswordRequest req) {
+        Usuario u = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
+
+        if (!passwordEncoder.matches(req.passwordActual(), u.getPasswordHash())) {
+            throw new ReglaNegocioException("La contraseña actual no es correcta.");
+        }
+        if (passwordEncoder.matches(req.passwordNueva(), u.getPasswordHash())) {
+            throw new ReglaNegocioException("La nueva contraseña debe ser distinta a la actual.");
         }
 
-        if (usuarioRepository.existsByEmail(req.email())) {
-            throw new ReglaNegocioException("Ya existe un usuario con ese email.");
-        }
-
-        Sede sede = sedeRepository.findById(req.sedeId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + req.sedeId()));
-
-        Usuario usuario = new Usuario();
-        usuario.setEmail(req.email());
-        usuario.setNombre(req.nombre());
-        usuario.setTelefono(req.telefono());
-        usuario.setPasswordHash(passwordEncoder.encode(req.password()));
-        usuario.setRol(req.rol());
-        usuario.setActivo(true);
-
-        EmpleadoPerfil perfil = new EmpleadoPerfil();
-        perfil.setUsuario(usuario);
-        perfil.setSede(sede);
-        perfil.setCargo(req.cargo());
-        usuario.setEmpleadoPerfil(perfil);
-
-        Usuario guardado = usuarioRepository.save(usuario);
-        return UsuarioResponse.from(guardado);
+        u.setPasswordHash(passwordEncoder.encode(req.passwordNueva()));
+        u.setMustChangePassword(false);
+        return UsuarioResponse.from(u);
     }
 
     @Transactional(readOnly = true)

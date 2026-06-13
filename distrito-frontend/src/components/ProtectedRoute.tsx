@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuthStore } from "../store/authStore";
 import { useCurrentUser } from "../features/auth/useCurrentUser";
@@ -13,6 +13,7 @@ export function ProtectedRoute({ roles, children }: Props) {
   const token = useAuthStore((s) => s.token);
   const usuario = useAuthStore((s) => s.usuario);
   const { isLoading, isError } = useCurrentUser();
+  const location = useLocation();
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -28,6 +29,10 @@ export function ProtectedRoute({ roles, children }: Props) {
 
   if (isError || !usuario) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (usuario.mustChangePassword && location.pathname !== "/cambiar-password") {
+    return <Navigate to="/cambiar-password" replace />;
   }
 
   if (!roles.includes(usuario.rol)) {

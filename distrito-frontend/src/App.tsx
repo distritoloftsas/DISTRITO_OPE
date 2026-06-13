@@ -5,6 +5,7 @@ import { ClientePage } from "./pages/ClientePage";
 import { EmpleadoPage } from "./pages/EmpleadoPage";
 import { GerentePage } from "./pages/GerentePage";
 import { AdminPage } from "./pages/AdminPage";
+import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
 import { useAuthStore } from "./store/authStore";
 import { rutaInicialPorRol } from "./types/auth";
 
@@ -22,6 +23,14 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/cambiar-password"
+          element={
+            <ProtectedRoute roles={["CLIENTE", "EMPLEADO", "GERENTE_SEDE", "SUPER_ADMIN"]}>
+              <CambiarPasswordPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/cliente"

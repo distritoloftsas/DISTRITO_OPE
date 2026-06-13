@@ -5,7 +5,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,9 +30,10 @@ public class AuthController {
         return authService.obtenerActual(principal.getUsuario().getId());
     }
 
-    @PostMapping("/registro-empleado")
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'GERENTE_SEDE')")
-    public ResponseEntity<UsuarioResponse> registrarEmpleado(@Valid @RequestBody RegistroEmpleadoRequest req) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registrarEmpleado(req));
+    @PostMapping("/cambiar-password")
+    public UsuarioResponse cambiarPassword(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @Valid @RequestBody CambiarPasswordRequest req) {
+        return authService.cambiarPassword(principal.getUsuario().getId(), req);
     }
 }

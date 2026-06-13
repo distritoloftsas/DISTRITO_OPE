@@ -6,6 +6,8 @@ export interface Usuario {
   nombre: string;
   rol: RolUsuario;
   sedeId: number | null;
+  mustChangePassword: boolean;
+  activo: boolean;
 }
 
 export interface AuthResponse {
