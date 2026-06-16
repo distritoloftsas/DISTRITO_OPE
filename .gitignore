@@ -1,7 +1,9 @@
 # --- Variables de entorno y secretos ---
+# Plantillas .env.{development,qa,production} SÍ van al repo (son configs por ambiente).
+# Lo que se ignora son los overrides locales y .env raíz.
 .env
 .env.local
-*.env
+.env.*.local
 
 # --- Java / Maven ---
 distrito-backend/target/

@@ -1,0 +1,18 @@
+# Perfil QA: ambiente de pruebas. TODAS las credenciales se inyectan por variables de entorno.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+distrito:
+  jwt:
+    secret: ${JWT_SECRET}
+  cors:
+    allowed-origins: ${CORS_ORIGINS}
+
+logging:
+  level:
+    com.distritoloft: INFO
+    org.springframework.security: WARN
