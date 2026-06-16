@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PedidoResponse } from "../../types/pedido";
 
 interface Props {
@@ -7,21 +7,38 @@ interface Props {
 }
 
 export function CicloCountdown({ pedido, className }: Props) {
-  const info = restanteCiclo(pedido);
-  const [tick, setTick] = useState(0);
+  const info = useMemo(() => restanteCiclo(pedido), [
+    pedido.estado,
+    pedido.fechaInicioLavado,
+    pedido.fechaInicioSecado,
+    pedido.plan.duracionLavadoMinutos,
+    pedido.plan.duracionSecadoMinutos,
+  ]);
+
+  const [ahora, setAhora] = useState<number>(() => Date.now());
 
   useEffect(() => {
     if (!info) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const transcurrido = Date.now() - info.inicioMs;
+    if (transcurrido >= info.duracionMs) {
+      // Ya termino: un render final con el mensaje "Ciclo cumplido". Sin timer.
+      setAhora(Date.now());
+      return;
+    }
+    const id = setInterval(() => {
+      const t = Date.now();
+      setAhora(t);
+      // Auto-detener cuando el ciclo se cumple para no tickear infinitamente.
+      if (t - info.inicioMs >= info.duracionMs) {
+        clearInterval(id);
+      }
+    }, 1000);
     return () => clearInterval(id);
-  }, [info?.inicio]);
+  }, [info]);
 
   if (!info) return null;
 
-  const ahora = Date.now() + tick * 0; // tick fuerza el re-render
-  void tick;
-  const transcurridoMs = ahora - info.inicio.getTime();
-  const restanteMs = info.duracionMs - transcurridoMs;
+  const restanteMs = info.duracionMs - (ahora - info.inicioMs);
   const terminado = restanteMs <= 0;
 
   return (
@@ -37,18 +54,24 @@ export function CicloCountdown({ pedido, className }: Props) {
   );
 }
 
-function restanteCiclo(p: PedidoResponse) {
+interface CicloInfo {
+  etapa: "lavado" | "secado";
+  inicioMs: number;
+  duracionMs: number;
+}
+
+function restanteCiclo(p: PedidoResponse): CicloInfo | null {
   if (p.estado === "LAVANDO" && p.fechaInicioLavado) {
     return {
       etapa: "lavado",
-      inicio: new Date(p.fechaInicioLavado),
+      inicioMs: new Date(p.fechaInicioLavado).getTime(),
       duracionMs: p.plan.duracionLavadoMinutos * 60_000,
     };
   }
   if (p.estado === "SECANDO" && p.fechaInicioSecado) {
     return {
       etapa: "secado",
-      inicio: new Date(p.fechaInicioSecado),
+      inicioMs: new Date(p.fechaInicioSecado).getTime(),
       duracionMs: p.plan.duracionSecadoMinutos * 60_000,
     };
   }

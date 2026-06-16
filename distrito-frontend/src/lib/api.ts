@@ -1,7 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 
-const baseURL = import.meta.env.VITE_API_URL ?? "/api";
+// Usa "||" (no "??") para que un VITE_API_URL vacio caiga al default y no quede baseURL = "".
+const baseURL = import.meta.env.VITE_API_URL || "/api";
 
 export const api = axios.create({
   baseURL,
@@ -27,7 +28,14 @@ api.interceptors.response.use(
         error.response.data
       );
 
-      if (error.response.status === 401) {
+      // Tanto 401 (no autenticado) como 403 sobre /auth/me indican que el token
+      // guardado ya no sirve. Limpiamos la sesion para evitar bucles de redireccion.
+      const reqUrl = (error.config?.url as string | undefined) ?? "";
+      const sesionInvalidada =
+        error.response.status === 401 ||
+        (error.response.status === 403 && reqUrl.includes("/auth/me"));
+
+      if (sesionInvalidada) {
         const wasAuthenticated = !!useAuthStore.getState().token;
         useAuthStore.getState().clearSession();
         if (wasAuthenticated && !window.location.pathname.startsWith("/login")) {

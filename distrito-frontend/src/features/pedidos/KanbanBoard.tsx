@@ -5,6 +5,7 @@ import { CobrarModal } from "./CobrarModal";
 import { CancelarModal } from "./CancelarModal";
 import { ElegirMaquinaModal } from "./ElegirMaquinaModal";
 import { HistorialPedidoModal } from "./HistorialPedidoModal";
+import { TicketPedidoModal } from "./TicketPedidoModal";
 import { CicloCountdown } from "./CicloCountdown";
 import { tipoParaSiguienteEstado } from "../../types/maquina";
 import {
@@ -14,6 +15,11 @@ import {
   type EstadoPedido,
   type PedidoResponse,
 } from "../../types/pedido";
+import {
+  ETIQUETA_RANGO,
+  rangoIso,
+  type RangoCerrados,
+} from "./rangoFechas";
 
 interface ElegirMaquinaState {
   pedido: PedidoResponse;
@@ -42,11 +48,15 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ estados = ESTADOS_KANBAN }: KanbanBoardProps = {}) {
-  const { data, isLoading, isError, error } = usePedidos({ estados });
+  const esCerrados = estados.every((e) => e === "ENTREGADO" || e === "CANCELADO");
+  const [rango, setRango] = useState<RangoCerrados>("30d");
+  const { desde, hasta } = esCerrados ? rangoIso(rango) : {};
+  const { data, isLoading, isError, error } = usePedidos({ estados, desde, hasta });
   const [cobrarPedido, setCobrarPedido] = useState<PedidoResponse | null>(null);
   const [cancelarPedido, setCancelarPedido] = useState<PedidoResponse | null>(null);
   const [elegirMaquina, setElegirMaquina] = useState<ElegirMaquinaState | null>(null);
   const [verPedido, setVerPedido] = useState<PedidoResponse | null>(null);
+  const [ticketPedido, setTicketPedido] = useState<PedidoResponse | null>(null);
 
   if (isLoading) {
     return <p className="text-sm text-stone-500 text-center py-12">Cargando pedidos...</p>;
@@ -66,6 +76,23 @@ export function KanbanBoard({ estados = ESTADOS_KANBAN }: KanbanBoardProps = {})
 
   return (
     <>
+      {esCerrados && (
+        <div className="flex items-center justify-end mb-3 gap-2">
+          <label className="text-xs text-stone-600">Rango:</label>
+          <select
+            value={rango}
+            onChange={(e) => setRango(e.target.value as RangoCerrados)}
+            className="text-xs px-2 py-1.5 border border-stone-300 rounded-md bg-white"
+          >
+            {(Object.keys(ETIQUETA_RANGO) as RangoCerrados[]).map((r) => (
+              <option key={r} value={r}>
+                {ETIQUETA_RANGO[r]}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div
         className={`grid grid-cols-1 sm:grid-cols-2 gap-3 ${
           estados.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-2"
@@ -96,6 +123,7 @@ export function KanbanBoard({ estados = ESTADOS_KANBAN }: KanbanBoardProps = {})
                     onCobrar={() => setCobrarPedido(p)}
                     onCancelar={() => setCancelarPedido(p)}
                     onVer={() => setVerPedido(p)}
+                    onTicket={() => setTicketPedido(p)}
                     onPedirMaquina={(siguiente, tipo) =>
                       setElegirMaquina({ pedido: p, siguiente, tipo })
                     }
@@ -139,6 +167,13 @@ export function KanbanBoard({ estados = ESTADOS_KANBAN }: KanbanBoardProps = {})
           onClose={() => setVerPedido(null)}
         />
       )}
+
+      {ticketPedido && (
+        <TicketPedidoModal
+          pedido={ticketPedido}
+          onClose={() => setTicketPedido(null)}
+        />
+      )}
     </>
   );
 }
@@ -148,12 +183,14 @@ function PedidoCard({
   onCobrar,
   onCancelar,
   onVer,
+  onTicket,
   onPedirMaquina,
 }: {
   pedido: PedidoResponse;
   onCobrar: () => void;
   onCancelar: () => void;
   onVer: () => void;
+  onTicket: () => void;
   onPedirMaquina: (siguiente: EstadoPedido, tipo: "LAVADORA" | "SECADORA") => void;
 }) {
   const colorClasses = COLOR_POR_ESTADO[pedido.estado];
@@ -233,6 +270,14 @@ function PedidoCard({
             Avanzar →
           </button>
         )}
+
+        <button
+          onClick={onTicket}
+          className="text-[10px] py-1 px-2 border border-current rounded bg-white"
+          title="Ver ticket / QR"
+        >
+          ⌗
+        </button>
 
         <button
           onClick={onCancelar}

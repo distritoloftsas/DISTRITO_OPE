@@ -24,14 +24,19 @@ function hoyISO(): string {
   return `${y}-${m}-${day}`;
 }
 
-export function CierreCajaSection() {
+interface Props {
+  sedeId?: number;
+  titulo?: string;
+}
+
+export function CierreCajaSection({ sedeId, titulo = "Cierre de caja" }: Props = {}) {
   const [fecha, setFecha] = useState<string>(hoyISO());
-  const { data, isLoading, isError, error } = useCierreCaja(fecha);
+  const { data, isLoading, isError, error } = useCierreCaja(fecha, sedeId);
 
   return (
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h2 className="text-base font-medium">Cierre de caja</h2>
+        <h2 className="text-base font-medium">{titulo}</h2>
         <div className="flex items-center gap-2">
           <label className="text-xs text-stone-600">Fecha:</label>
           <input

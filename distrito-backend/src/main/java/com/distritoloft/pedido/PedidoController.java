@@ -7,15 +7,18 @@ import com.distritoloft.pedido.dto.CrearPagoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
 import com.distritoloft.pedido.dto.HistorialEventoResponse;
 import com.distritoloft.pedido.dto.PagoResponse;
+import com.distritoloft.pedido.dto.PedidoPublicoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @RestController
@@ -31,9 +34,13 @@ public class PedidoController {
     public List<PedidoResponse> listar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(name = "sedeId", required = false) Long sedeId,
-            @RequestParam(name = "estado", required = false) List<EstadoPedido> estados
+            @RequestParam(name = "estado", required = false) List<EstadoPedido> estados,
+            @RequestParam(name = "desde", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime desde,
+            @RequestParam(name = "hasta", required = false)
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime hasta
     ) {
-        return pedidoService.listar(principal, sedeId, estados);
+        return pedidoService.listar(principal, sedeId, estados, desde, hasta);
     }
 
     @PostMapping
@@ -63,6 +70,11 @@ public class PedidoController {
             @Valid @RequestBody CrearPagoRequest req
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(pagoService.registrar(principal, id, req));
+    }
+
+    @GetMapping("/publico/{codigoQr}")
+    public PedidoPublicoResponse seguimientoPublico(@PathVariable String codigoQr) {
+        return pedidoService.obtenerPublico(codigoQr);
     }
 
     @GetMapping("/{id}/historial")

@@ -18,3 +18,26 @@ body {
   color: var(--color-distrito-black);
   font-family: var(--font-sans);
 }
+
+/* Impresion: solo se imprime el ticket. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .ticket-overlay,
+  .ticket-overlay * {
+    visibility: visible;
+  }
+  .ticket-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    background: white !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .ticket-printable {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
