@@ -12,6 +12,7 @@ import com.distritoloft.maquina.MaquinaRepository;
 import com.distritoloft.pedido.dto.CambioEstadoRequest;
 import com.distritoloft.pedido.dto.CrearPedidoRequest;
 import com.distritoloft.pedido.dto.HistorialEventoResponse;
+import com.distritoloft.pedido.dto.PedidoPublicoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.plan.PlanRepository;
@@ -54,6 +55,13 @@ public class PedidoService {
     );
 
     @Transactional(readOnly = true)
+    public PedidoPublicoResponse obtenerPublico(String codigoQr) {
+        Pedido pedido = pedidoRepository.findByCodigoQr(codigoQr)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pedido no encontrado: " + codigoQr));
+        return PedidoPublicoResponse.from(pedido);
+    }
+
+    @Transactional(readOnly = true)
     public List<HistorialEventoResponse> historial(CustomUserDetails principal, Long pedidoId) {
         Usuario actual = cargarUsuarioActual(principal);
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -72,18 +80,27 @@ public class PedidoService {
                 .toList();
     }
 
+    private static final OffsetDateTime FECHA_MIN = OffsetDateTime.parse("1970-01-01T00:00:00Z");
+    private static final OffsetDateTime FECHA_MAX = OffsetDateTime.parse("9999-12-31T23:59:59Z");
+
     @Transactional(readOnly = true)
-    public List<PedidoResponse> listar(CustomUserDetails principal, Long sedeIdParam, List<EstadoPedido> estados) {
+    public List<PedidoResponse> listar(CustomUserDetails principal,
+                                       Long sedeIdParam,
+                                       List<EstadoPedido> estados,
+                                       OffsetDateTime desde,
+                                       OffsetDateTime hasta) {
         Usuario actual = cargarUsuarioActual(principal);
+        OffsetDateTime desdeSeguro = desde != null ? desde : FECHA_MIN;
+        OffsetDateTime hastaSeguro = hasta != null ? hasta : FECHA_MAX;
 
         if (actual.getRol() == RolUsuario.CLIENTE) {
-            return pedidoRepository.buscarPorCliente(actual.getId(), estados).stream()
+            return pedidoRepository.buscarPorCliente(actual.getId(), estados, desdeSeguro, hastaSeguro).stream()
                     .map(PedidoResponse::from)
                     .toList();
         }
 
         Long sedeId = resolverSede(actual, sedeIdParam);
-        return pedidoRepository.buscar(sedeId, estados).stream()
+        return pedidoRepository.buscar(sedeId, estados, desdeSeguro, hastaSeguro).stream()
                 .map(PedidoResponse::from)
                 .toList();
     }

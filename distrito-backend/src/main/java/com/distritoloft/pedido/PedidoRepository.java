@@ -22,9 +22,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
             LEFT JOIN FETCH p.secadora
             WHERE (:sedeId IS NULL OR p.sede.id = :sedeId)
               AND (:#{#estados == null || #estados.isEmpty()} = true OR p.estado IN :estados)
+              AND p.actualizadoEn >= :desde
+              AND p.actualizadoEn < :hasta
             ORDER BY p.fechaRecepcion DESC
             """)
-    List<Pedido> buscar(@Param("sedeId") Long sedeId, @Param("estados") List<EstadoPedido> estados);
+    List<Pedido> buscar(@Param("sedeId") Long sedeId,
+                        @Param("estados") List<EstadoPedido> estados,
+                        @Param("desde") OffsetDateTime desde,
+                        @Param("hasta") OffsetDateTime hasta);
 
     @Query("""
             SELECT p FROM Pedido p
@@ -45,10 +50,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
             LEFT JOIN FETCH p.secadora
             WHERE p.cliente.id = :clienteId
               AND (:#{#estados == null || #estados.isEmpty()} = true OR p.estado IN :estados)
+              AND p.actualizadoEn >= :desde
+              AND p.actualizadoEn < :hasta
             ORDER BY p.fechaRecepcion DESC
             """)
     List<Pedido> buscarPorCliente(@Param("clienteId") Long clienteId,
-                                  @Param("estados") List<EstadoPedido> estados);
+                                  @Param("estados") List<EstadoPedido> estados,
+                                  @Param("desde") OffsetDateTime desde,
+                                  @Param("hasta") OffsetDateTime hasta);
 
     List<Pedido> findByClienteIdOrderByFechaRecepcionDesc(Long clienteId);
 

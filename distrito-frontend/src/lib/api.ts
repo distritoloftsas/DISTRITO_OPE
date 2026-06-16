@@ -1,7 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "../store/authStore";
 
-const baseURL = import.meta.env.VITE_API_URL ?? "/api";
+// Usa "||" (no "??") para que un VITE_API_URL vacio caiga al default y no quede baseURL = "".
+const baseURL = import.meta.env.VITE_API_URL || "/api";
 
 export const api = axios.create({
   baseURL,
