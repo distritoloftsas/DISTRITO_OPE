@@ -41,4 +41,11 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             """)
     List<Usuario> listarEmpleados(@Param("roles") List<RolUsuario> roles,
                                   @Param("sedeId") Long sedeId);
+
+    @Query("""
+            SELECT COUNT(u) FROM Usuario u
+            WHERE u.empleadoPerfil.sede.id = :sedeId
+              AND u.activo = true
+            """)
+    long contarEmpleadosActivosPorSede(@Param("sedeId") Long sedeId);
 }

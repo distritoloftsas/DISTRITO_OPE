@@ -22,12 +22,12 @@ export interface CierreCajaResponse {
   }>;
 }
 
-export function useCierreCaja(fecha: string) {
+export function useCierreCaja(fecha: string, sedeId?: number) {
   return useQuery({
-    queryKey: ["cierre-caja", fecha],
+    queryKey: ["cierre-caja", fecha, sedeId],
     queryFn: async () => {
       const { data } = await api.get<CierreCajaResponse>("/reportes/cierre-caja", {
-        params: { fecha },
+        params: { fecha, sedeId },
       });
       return data;
     },

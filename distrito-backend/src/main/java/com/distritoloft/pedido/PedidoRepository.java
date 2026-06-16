@@ -82,4 +82,21 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
                                           @Param("estado") EstadoPedido estado,
                                           @Param("desde") OffsetDateTime desde,
                                           @Param("hasta") OffsetDateTime hasta);
+
+    @Query("""
+            SELECT COUNT(p) FROM Pedido p
+            WHERE p.sede.id = :sedeId
+              AND p.fechaRecepcion >= :desde AND p.fechaRecepcion < :hasta
+            """)
+    long contarPorSedeEnRangoRecepcion(@Param("sedeId") Long sedeId,
+                                       @Param("desde") OffsetDateTime desde,
+                                       @Param("hasta") OffsetDateTime hasta);
+
+    @Query("""
+            SELECT COUNT(p) FROM Pedido p
+            WHERE p.sede.id = :sedeId
+              AND p.estado IN :estados
+            """)
+    long contarPorSedeYEstados(@Param("sedeId") Long sedeId,
+                               @Param("estados") List<EstadoPedido> estados);
 }
