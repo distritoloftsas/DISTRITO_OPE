@@ -5,6 +5,7 @@ import { CobrarModal } from "./CobrarModal";
 import { CancelarModal } from "./CancelarModal";
 import { ElegirMaquinaModal } from "./ElegirMaquinaModal";
 import { HistorialPedidoModal } from "./HistorialPedidoModal";
+import { CicloCountdown } from "./CicloCountdown";
 import { tipoParaSiguienteEstado } from "../../types/maquina";
 import {
   ESTADOS_KANBAN,
@@ -209,6 +210,7 @@ function PedidoCard({
           {maquinaActual.tipo === "LAVADORA" ? "Lav" : "Sec"} {maquinaActual.numero}
         </p>
       )}
+      <CicloCountdown pedido={pedido} className="mt-0.5" />
       <p className="text-[10px] opacity-70 mt-1 mb-2">{formatoCOP.format(pedido.total)}</p>
 
       <div className="flex gap-1">

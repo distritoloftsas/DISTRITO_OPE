@@ -20,6 +20,8 @@ export interface PedidoResponse {
     precio: number;
     incluyeDoblado: boolean;
     incluyeDomicilio: boolean;
+    duracionLavadoMinutos: number;
+    duracionSecadoMinutos: number;
   };
   estado: EstadoPedido;
   total: number;
@@ -28,6 +30,8 @@ export interface PedidoResponse {
   fechaRecepcion: string;
   fechaEntregaEstimada: string | null;
   fechaEntregaReal: string | null;
+  fechaInicioLavado: string | null;
+  fechaInicioSecado: string | null;
   lavadora: MaquinaRefResumen | null;
   secadora: MaquinaRefResumen | null;
 }

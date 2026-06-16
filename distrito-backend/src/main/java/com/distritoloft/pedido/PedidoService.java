@@ -154,8 +154,16 @@ public class PedidoService {
 
         pedido.setEstado(nuevo);
 
+        OffsetDateTime ahora = OffsetDateTime.now();
+        if (nuevo == EstadoPedido.LAVANDO && pedido.getFechaInicioLavado() == null) {
+            pedido.setFechaInicioLavado(ahora);
+        }
+        if (nuevo == EstadoPedido.SECANDO && pedido.getFechaInicioSecado() == null) {
+            pedido.setFechaInicioSecado(ahora);
+        }
+
         if (nuevo == EstadoPedido.ENTREGADO) {
-            pedido.setFechaEntregaReal(OffsetDateTime.now());
+            pedido.setFechaEntregaReal(ahora);
             incrementarLavadosCliente(pedido.getCliente());
         }
 

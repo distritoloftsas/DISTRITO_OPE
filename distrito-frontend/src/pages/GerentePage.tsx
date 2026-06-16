@@ -5,14 +5,25 @@ import { etiquetaRol } from "../types/auth";
 import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
 import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
+import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
+import { KanbanBoard } from "../features/pedidos/KanbanBoard";
+import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
+import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
+
+type Vista = "operacion" | "administracion";
 
 export function GerentePage() {
   const usuario = useAuthStore((s) => s.usuario);
   const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
-  const [mostrarNuevo, setMostrarNuevo] = useState(false);
-  const [creado, setCreado] = useState<string | null>(null);
+
+  const [vista, setVista] = useState<Vista>("operacion");
+  const [tabPedidos, setTabPedidos] = useState<"activos" | "cerrados">("activos");
+  const [mostrarNuevoPedido, setMostrarNuevoPedido] = useState(false);
+  const [mostrarNuevoEmpleado, setMostrarNuevoEmpleado] = useState(false);
+  const [ultimoQr, setUltimoQr] = useState<string | null>(null);
+  const [empleadoCreado, setEmpleadoCreado] = useState<string | null>(null);
 
   const cerrarSesion = () => {
     clearSession();
@@ -47,47 +58,156 @@ export function GerentePage() {
         </div>
       </header>
 
-      <main className="flex-1 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-medium">Equipo de la sede</h2>
-          <button
-            onClick={() => setMostrarNuevo(true)}
-            className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
-          >
-            + Nuevo empleado
-          </button>
+      <nav className="bg-white border-b border-stone-200 px-6">
+        <div className="flex gap-1">
+          <NavTab active={vista === "operacion"} onClick={() => setVista("operacion")}>
+            Operación
+          </NavTab>
+          <NavTab active={vista === "administracion"} onClick={() => setVista("administracion")}>
+            Administración
+          </NavTab>
         </div>
+      </nav>
 
-        {creado && (
-          <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4 flex justify-between items-center">
-            <span>
-              ✓ Empleado <strong>{creado}</strong> creado. Entrégale su contraseña inicial.
-            </span>
-            <button onClick={() => setCreado(null)} className="text-green-700 text-xs">
-              cerrar
-            </button>
-          </div>
+      <main className="flex-1 p-6">
+        {vista === "operacion" && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-medium">Tablero de pedidos</h2>
+              <button
+                onClick={() => setMostrarNuevoPedido(true)}
+                className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
+              >
+                + Nuevo pedido
+              </button>
+            </div>
+
+            {ultimoQr && (
+              <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4 flex justify-between items-center">
+                <span>
+                  ✓ Pedido <strong>{ultimoQr}</strong> creado.
+                </span>
+                <button onClick={() => setUltimoQr(null)} className="text-green-700 text-xs">
+                  cerrar
+                </button>
+              </div>
+            )}
+
+            <PanelMaquinas />
+
+            <div className="flex gap-1 mb-3 border-b border-stone-200">
+              <SubTab active={tabPedidos === "activos"} onClick={() => setTabPedidos("activos")}>
+                En curso
+              </SubTab>
+              <SubTab active={tabPedidos === "cerrados"} onClick={() => setTabPedidos("cerrados")}>
+                Cerrados
+              </SubTab>
+            </div>
+
+            <KanbanBoard estados={tabPedidos === "activos" ? ESTADOS_KANBAN : ESTADOS_CERRADOS} />
+          </>
         )}
 
-        <EmpleadosTabla />
+        {vista === "administracion" && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-medium">Equipo de la sede</h2>
+              <button
+                onClick={() => setMostrarNuevoEmpleado(true)}
+                className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
+              >
+                + Nuevo empleado
+              </button>
+            </div>
 
-        <h2 className="text-base font-medium mt-8 mb-4">Máquinas</h2>
-        <MantenimientoMaquinas />
+            {empleadoCreado && (
+              <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4 flex justify-between items-center">
+                <span>
+                  ✓ Empleado <strong>{empleadoCreado}</strong> creado. Entrégale su contraseña inicial.
+                </span>
+                <button onClick={() => setEmpleadoCreado(null)} className="text-green-700 text-xs">
+                  cerrar
+                </button>
+              </div>
+            )}
 
-        <div className="mt-8">
-          <CierreCajaSection />
-        </div>
+            <EmpleadosTabla />
+
+            <h2 className="text-base font-medium mt-8 mb-4">Máquinas</h2>
+            <MantenimientoMaquinas />
+
+            <div className="mt-8">
+              <CierreCajaSection />
+            </div>
+          </>
+        )}
       </main>
 
-      {mostrarNuevo && (
+      {mostrarNuevoPedido && (
+        <NuevoPedidoModal
+          onClose={() => setMostrarNuevoPedido(false)}
+          onCreado={(qr) => {
+            setUltimoQr(qr);
+            setMostrarNuevoPedido(false);
+          }}
+        />
+      )}
+
+      {mostrarNuevoEmpleado && (
         <NuevoEmpleadoModal
-          onClose={() => setMostrarNuevo(false)}
+          onClose={() => setMostrarNuevoEmpleado(false)}
           onCreado={(nombre) => {
-            setCreado(nombre);
-            setMostrarNuevo(false);
+            setEmpleadoCreado(nombre);
+            setMostrarNuevoEmpleado(false);
           }}
         />
       )}
     </div>
+  );
+}
+
+function NavTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-sm px-4 py-3 -mb-px border-b-2 ${
+        active
+          ? "border-distrito-gold-dark text-distrito-black font-medium"
+          : "border-transparent text-stone-500 hover:text-stone-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function SubTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-4 py-2 -mb-px border-b-2 ${
+        active
+          ? "border-distrito-gold-dark text-distrito-black font-medium"
+          : "border-transparent text-stone-500 hover:text-stone-700"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

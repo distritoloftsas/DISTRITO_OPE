@@ -36,6 +36,12 @@ public class Plan {
     @Column(name = "incluye_domicilio", nullable = false)
     private Boolean incluyeDomicilio = false;
 
+    @Column(name = "duracion_lavado_minutos", nullable = false)
+    private Integer duracionLavadoMinutos = 35;
+
+    @Column(name = "duracion_secado_minutos", nullable = false)
+    private Integer duracionSecadoMinutos = 30;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 

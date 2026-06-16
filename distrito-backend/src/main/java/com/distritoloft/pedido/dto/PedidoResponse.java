@@ -21,12 +21,22 @@ public record PedidoResponse(
         OffsetDateTime fechaRecepcion,
         OffsetDateTime fechaEntregaEstimada,
         OffsetDateTime fechaEntregaReal,
+        OffsetDateTime fechaInicioLavado,
+        OffsetDateTime fechaInicioSecado,
         MaquinaResumen lavadora,
         MaquinaResumen secadora
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
     public record SedeResumen(Long id, String nombre) {}
-    public record PlanResumen(Long id, String nombre, BigDecimal precio, Boolean incluyeDoblado, Boolean incluyeDomicilio) {}
+    public record PlanResumen(
+            Long id,
+            String nombre,
+            BigDecimal precio,
+            Boolean incluyeDoblado,
+            Boolean incluyeDomicilio,
+            Integer duracionLavadoMinutos,
+            Integer duracionSecadoMinutos
+    ) {}
     public record MaquinaResumen(Long id, TipoMaquina tipo, Short numero) {}
 
     public static PedidoResponse from(Pedido p) {
@@ -40,7 +50,9 @@ public record PedidoResponse(
                         p.getPlan().getNombre(),
                         p.getPlan().getPrecio(),
                         p.getPlan().getIncluyeDoblado(),
-                        p.getPlan().getIncluyeDomicilio()
+                        p.getPlan().getIncluyeDomicilio(),
+                        p.getPlan().getDuracionLavadoMinutos(),
+                        p.getPlan().getDuracionSecadoMinutos()
                 ),
                 p.getEstado(),
                 p.getTotal(),
@@ -49,6 +61,8 @@ public record PedidoResponse(
                 p.getFechaRecepcion(),
                 p.getFechaEntregaEstimada(),
                 p.getFechaEntregaReal(),
+                p.getFechaInicioLavado(),
+                p.getFechaInicioSecado(),
                 resumen(p.getLavadora()),
                 resumen(p.getSecadora())
         );

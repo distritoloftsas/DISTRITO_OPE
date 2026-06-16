@@ -1,4 +1,5 @@
 import { etiquetaEstado, type EstadoPedido, type PedidoResponse } from "../../types/pedido";
+import { CicloCountdown } from "./CicloCountdown";
 
 const FLUJO: EstadoPedido[] = ["RECIBIDO", "LAVANDO", "SECANDO", "DOBLANDO", "LISTO", "ENTREGADO"];
 
@@ -55,6 +56,8 @@ export function PedidoClienteCard({ pedido, onVer }: Props) {
           )}
         </div>
       </header>
+
+      <CicloCountdown pedido={pedido} className="mb-2" />
 
       {!cancelado && (
         <ol className="flex gap-1 mb-3">

@@ -67,6 +67,12 @@ public class Pedido {
     @Column(name = "fecha_entrega_real")
     private OffsetDateTime fechaEntregaReal;
 
+    @Column(name = "fecha_inicio_lavado")
+    private OffsetDateTime fechaInicioLavado;
+
+    @Column(name = "fecha_inicio_secado")
+    private OffsetDateTime fechaInicioSecado;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creado_por_empleado_id")
     private Usuario creadoPorEmpleado;
