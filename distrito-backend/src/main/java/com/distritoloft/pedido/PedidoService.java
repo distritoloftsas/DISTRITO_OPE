@@ -3,10 +3,15 @@ package com.distritoloft.pedido;
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.common.enums.EstadoMaquina;
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.common.enums.FaseConsumo;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.enums.TipoMaquina;
+import com.distritoloft.common.enums.TipoMovimientoInsumo;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
+import com.distritoloft.insumo.Insumo;
+import com.distritoloft.insumo.MovimientoInsumo;
+import com.distritoloft.insumo.MovimientoInsumoRepository;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.maquina.MaquinaRepository;
 import com.distritoloft.pedido.dto.CambioEstadoRequest;
@@ -15,6 +20,8 @@ import com.distritoloft.pedido.dto.HistorialEventoResponse;
 import com.distritoloft.pedido.dto.PedidoPublicoResponse;
 import com.distritoloft.pedido.dto.PedidoResponse;
 import com.distritoloft.plan.Plan;
+import com.distritoloft.plan.PlanConsumo;
+import com.distritoloft.plan.PlanConsumoRepository;
 import com.distritoloft.plan.PlanRepository;
 import com.distritoloft.sede.Sede;
 import com.distritoloft.usuario.ClientePerfil;
@@ -40,6 +47,8 @@ public class PedidoService {
     private final PlanRepository planRepository;
     private final MaquinaRepository maquinaRepository;
     private final PedidoEstadoHistorialRepository historialRepository;
+    private final PlanConsumoRepository planConsumoRepository;
+    private final MovimientoInsumoRepository movimientoInsumoRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -169,6 +178,15 @@ public class PedidoService {
 
         gestionarMaquinas(pedido, actual, nuevo, req.maquinaId());
 
+        // Descontar insumos del plan ANTES de cambiar estado, para que si falla por
+        // stock insuficiente no haya efectos parciales.
+        if (actual == EstadoPedido.RECIBIDO && nuevo == EstadoPedido.LAVANDO) {
+            descontarInsumosDelPlan(pedido, FaseConsumo.LAVADO, empleado);
+        }
+        if (actual == EstadoPedido.LAVANDO && nuevo == EstadoPedido.SECANDO) {
+            descontarInsumosDelPlan(pedido, FaseConsumo.SECADO, empleado);
+        }
+
         pedido.setEstado(nuevo);
 
         OffsetDateTime ahora = OffsetDateTime.now();
@@ -246,6 +264,49 @@ public class PedidoService {
         }
         m.setEstado(EstadoMaquina.OCUPADA);
         return m;
+    }
+
+    private void descontarInsumosDelPlan(Pedido pedido, FaseConsumo fase, Usuario empleado) {
+        List<PlanConsumo> lineas = planConsumoRepository.findParaPedido(
+                pedido.getPlan().getId(), fase, pedido.getSede().getId());
+
+        if (lineas.isEmpty()) return; // Sin receta para esta fase, no descuenta nada.
+
+        // Primera pasada: validar que haya stock suficiente para TODO antes de tocar nada.
+        for (PlanConsumo linea : lineas) {
+            Insumo insumo = linea.getInsumo();
+            if (insumo.getStockActual().compareTo(linea.getCantidad()) < 0) {
+                throw new ReglaNegocioException(
+                        "No hay suficiente " + insumo.getNombre()
+                                + " (necesario " + formatoCantidad(linea.getCantidad())
+                                + ", disponible " + formatoCantidad(insumo.getStockActual()) + ")."
+                );
+            }
+        }
+
+        // Segunda pasada: descontar y registrar movimiento.
+        for (PlanConsumo linea : lineas) {
+            Insumo insumo = linea.getInsumo();
+            insumo.setStockActual(insumo.getStockActual().subtract(linea.getCantidad()));
+
+            MovimientoInsumo mov = new MovimientoInsumo();
+            mov.setInsumo(insumo);
+            mov.setTipo(TipoMovimientoInsumo.CONSUMO);
+            mov.setCantidad(linea.getCantidad());
+            mov.setCostoUnitario(insumo.getCostoUnitario());
+            mov.setMotivo("Consumo " + fase.name().toLowerCase() + " · " + pedido.getCodigoQr());
+            mov.setPedido(pedido);
+            mov.setEmpleado(empleado);
+            movimientoInsumoRepository.save(mov);
+        }
+    }
+
+    private static String formatoCantidad(java.math.BigDecimal valor) {
+        if (valor == null) return "0";
+        java.math.BigDecimal limpio = valor.stripTrailingZeros();
+        // stripTrailingZeros puede dejar "1E+3"; toPlainString lo evita.
+        if (limpio.scale() < 0) limpio = limpio.setScale(0);
+        return limpio.toPlainString();
     }
 
     private void liberarMaquina(Maquina m) {

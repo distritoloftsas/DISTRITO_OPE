@@ -11,6 +11,10 @@ import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
+import { InsumosTabla } from "../features/insumos/InsumosTabla";
+import { NuevoInsumoModal } from "../features/insumos/NuevoInsumoModal";
+import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
+import { RecetaPlanSection } from "../features/planes/RecetaPlanSection";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 type Vista = "operacion" | "administracion";
@@ -24,8 +28,10 @@ export function GerentePage() {
   const [tabPedidos, setTabPedidos] = useState<"activos" | "cerrados">("activos");
   const [mostrarNuevoPedido, setMostrarNuevoPedido] = useState(false);
   const [mostrarNuevoEmpleado, setMostrarNuevoEmpleado] = useState(false);
+  const [mostrarNuevoInsumo, setMostrarNuevoInsumo] = useState(false);
   const [ultimoQr, setUltimoQr] = useState<string | null>(null);
   const [empleadoCreado, setEmpleadoCreado] = useState<string | null>(null);
+  const [insumoCreado, setInsumoCreado] = useState<string | null>(null);
 
   const cerrarSesion = () => confirmarCerrarSesion(navigate);
 
@@ -71,6 +77,8 @@ export function GerentePage() {
       <main className="flex-1 p-6">
         {vista === "operacion" && (
           <>
+            <AlertaStockBajo />
+
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-medium">Tablero de pedidos</h2>
               <button
@@ -132,6 +140,33 @@ export function GerentePage() {
 
             <EmpleadosTabla />
 
+            <div className="flex items-center justify-between mt-8 mb-4">
+              <h2 className="text-base font-medium">Inventario de insumos</h2>
+              <button
+                onClick={() => setMostrarNuevoInsumo(true)}
+                className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
+              >
+                + Nuevo insumo
+              </button>
+            </div>
+
+            {insumoCreado && (
+              <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded-lg p-3 mb-4 flex justify-between items-center">
+                <span>
+                  ✓ Insumo <strong>{insumoCreado}</strong> registrado.
+                </span>
+                <button onClick={() => setInsumoCreado(null)} className="text-green-700 text-xs">
+                  cerrar
+                </button>
+              </div>
+            )}
+
+            <InsumosTabla />
+
+            <div className="mt-8">
+              <RecetaPlanSection />
+            </div>
+
             <h2 className="text-base font-medium mt-8 mb-4">Máquinas</h2>
             <MantenimientoMaquinas />
 
@@ -158,6 +193,16 @@ export function GerentePage() {
           onCreado={(nombre) => {
             setEmpleadoCreado(nombre);
             setMostrarNuevoEmpleado(false);
+          }}
+        />
+      )}
+
+      {mostrarNuevoInsumo && (
+        <NuevoInsumoModal
+          onClose={() => setMostrarNuevoInsumo(false)}
+          onCreado={(nombre) => {
+            setInsumoCreado(nombre);
+            setMostrarNuevoInsumo(false);
           }}
         />
       )}
