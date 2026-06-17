@@ -2,23 +2,22 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
+import { confirmarCerrarSesion } from "../lib/confirmarSalir";
+import { usePageTitle } from "../lib/usePageTitle";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 export function EmpleadoPage() {
+  usePageTitle("Operación");
   const usuario = useAuthStore((s) => s.usuario);
-  const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
   const [mostrarNuevo, setMostrarNuevo] = useState(false);
   const [ultimoQr, setUltimoQr] = useState<string | null>(null);
   const [tab, setTab] = useState<"activos" | "cerrados">("activos");
 
-  const cerrarSesion = () => {
-    clearSession();
-    navigate("/login", { replace: true });
-  };
+  const cerrarSesion = () => confirmarCerrarSesion(navigate);
 
   if (!usuario) return null;
 

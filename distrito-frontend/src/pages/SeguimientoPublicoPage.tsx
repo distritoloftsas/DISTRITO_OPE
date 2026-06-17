@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 import type { EstadoPedido } from "../types/pedido";
+import { usePageTitle } from "../lib/usePageTitle";
 
 const FLUJO: EstadoPedido[] = ["RECIBIDO", "LAVANDO", "SECANDO", "DOBLANDO", "LISTO", "ENTREGADO"];
 
@@ -58,6 +59,7 @@ const baseApi = import.meta.env.VITE_API_URL || "/api";
 
 export function SeguimientoPublicoPage() {
   const { codigo } = useParams<{ codigo: string }>();
+  usePageTitle(codigo ? `Pedido ${codigo}` : "Seguimiento");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["pedido-publico", codigo],

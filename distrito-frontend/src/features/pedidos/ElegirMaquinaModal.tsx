@@ -1,5 +1,6 @@
 import { useMaquinas } from "../maquinas/useMaquinas";
 import { useCambiarEstado } from "./useCambiarEstado";
+import { useEscape } from "../../lib/useEscape";
 import type { TipoMaquina } from "../../types/maquina";
 import type { EstadoPedido, PedidoResponse } from "../../types/pedido";
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function ElegirMaquinaModal({ pedido, siguiente, tipo, onClose, onAvanzado }: Props) {
+  useEscape(onClose);
   const { data: maquinas, isLoading } = useMaquinas();
   const cambiar = useCambiarEstado();
 

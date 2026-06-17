@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
+import { confirmarCerrarSesion } from "../lib/confirmarSalir";
+import { usePageTitle } from "../lib/usePageTitle";
 import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
 import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
@@ -14,8 +16,8 @@ import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 type Vista = "operacion" | "administracion";
 
 export function GerentePage() {
+  usePageTitle("Gerencia");
   const usuario = useAuthStore((s) => s.usuario);
-  const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
 
   const [vista, setVista] = useState<Vista>("operacion");
@@ -25,10 +27,7 @@ export function GerentePage() {
   const [ultimoQr, setUltimoQr] = useState<string | null>(null);
   const [empleadoCreado, setEmpleadoCreado] = useState<string | null>(null);
 
-  const cerrarSesion = () => {
-    clearSession();
-    navigate("/login", { replace: true });
-  };
+  const cerrarSesion = () => confirmarCerrarSesion(navigate);
 
   if (!usuario) return null;
 

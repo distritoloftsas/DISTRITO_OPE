@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 import { etiquetaRol } from "../types/auth";
+import { confirmarCerrarSesion } from "../lib/confirmarSalir";
+import { usePageTitle } from "../lib/usePageTitle";
 import { useSedesKpis, useCambiarActivaSede, type SedeKpis } from "../features/sedes/useSedes";
 import { NuevaSedeModal } from "../features/sedes/NuevaSedeModal";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
@@ -13,8 +15,8 @@ const formatoCOP = new Intl.NumberFormat("es-CO", {
 });
 
 export function AdminPage() {
+  usePageTitle("Administración nacional");
   const usuario = useAuthStore((s) => s.usuario);
-  const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
   const { data, isLoading, isError } = useSedesKpis();
   const cambiarActiva = useCambiarActivaSede();
@@ -23,10 +25,7 @@ export function AdminPage() {
   const [creada, setCreada] = useState<string | null>(null);
   const [sedeDetalle, setSedeDetalle] = useState<SedeKpis | null>(null);
 
-  const cerrarSesion = () => {
-    clearSession();
-    navigate("/login", { replace: true });
-  };
+  const cerrarSesion = () => confirmarCerrarSesion(navigate);
 
   if (!usuario) return null;
 

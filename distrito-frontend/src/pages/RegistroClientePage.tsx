@@ -4,8 +4,10 @@ import { useRegistroCliente } from "../features/auth/useRegistroCliente";
 import { useAuthStore } from "../store/authStore";
 import { rutaInicialPorRol } from "../types/auth";
 import { PasswordInput } from "../components/PasswordInput";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export function RegistroClientePage() {
+  usePageTitle("Crear cuenta");
   const usuario = useAuthStore((s) => s.usuario);
   const navigate = useNavigate();
   const registro = useRegistroCliente();

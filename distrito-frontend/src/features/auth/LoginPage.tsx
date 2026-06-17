@@ -6,6 +6,7 @@ import { useLogin } from "./useLogin";
 import { useAuthStore } from "../../store/authStore";
 import { rutaInicialPorRol } from "../../types/auth";
 import { PasswordInput } from "../../components/PasswordInput";
+import { usePageTitle } from "../../lib/usePageTitle";
 
 const schema = z.object({
   email: z.string().min(1, "Requerido").email("Email inválido"),
@@ -15,6 +16,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
+  usePageTitle("Ingresar");
   const usuario = useAuthStore((s) => s.usuario);
   const navigate = useNavigate();
   const login = useLogin();

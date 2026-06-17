@@ -8,6 +8,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
 import { RegistroClientePage } from "./pages/RegistroClientePage";
 import { SeguimientoPublicoPage } from "./pages/SeguimientoPublicoPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { useAuthStore } from "./store/authStore";
 import { rutaInicialPorRol } from "./types/auth";
 
@@ -69,7 +70,7 @@ function App() {
           }
         />
 
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

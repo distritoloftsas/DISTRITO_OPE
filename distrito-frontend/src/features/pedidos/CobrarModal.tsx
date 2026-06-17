@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRegistrarPago } from "./useRegistrarPago";
+import { useEscape } from "../../lib/useEscape";
 import type { MetodoPago, PedidoResponse } from "../../types/pedido";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -21,6 +22,7 @@ const metodos: { value: MetodoPago; label: string }[] = [
 ];
 
 export function CobrarModal({ pedido, onClose, onCobrado }: Props) {
+  useEscape(onClose);
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
   const [referencia, setReferencia] = useState("");
   const registrar = useRegistrarPago();

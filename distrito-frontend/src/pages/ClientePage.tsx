@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { confirmarCerrarSesion } from "../lib/confirmarSalir";
+import { usePageTitle } from "../lib/usePageTitle";
 import { useMisPedidos } from "../features/pedidos/misPedidos";
 import { PedidoClienteCard } from "../features/pedidos/PedidoClienteCard";
 import { HistorialPedidoModal } from "../features/pedidos/HistorialPedidoModal";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN, type PedidoResponse } from "../types/pedido";
 
 export function ClientePage() {
+  usePageTitle("Mis pedidos");
   const usuario = useAuthStore((s) => s.usuario);
-  const clearSession = useAuthStore((s) => s.clearSession);
   const navigate = useNavigate();
   const [tab, setTab] = useState<"activos" | "cerrados">("activos");
   const [verPedido, setVerPedido] = useState<PedidoResponse | null>(null);
@@ -16,10 +18,7 @@ export function ClientePage() {
   const estados = tab === "activos" ? ESTADOS_KANBAN : ESTADOS_CERRADOS;
   const { data, isLoading, isError } = useMisPedidos({ estados });
 
-  const cerrarSesion = () => {
-    clearSession();
-    navigate("/login", { replace: true });
-  };
+  const cerrarSesion = () => confirmarCerrarSesion(navigate);
 
   if (!usuario) return null;
 
