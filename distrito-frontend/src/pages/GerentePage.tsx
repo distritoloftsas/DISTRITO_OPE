@@ -93,7 +93,7 @@ export function GerentePage() {
         {vista === "operacion" && (
           <>
             <TurnoSection />
-            <AlertaStockBajo />
+            {tienePermiso(usuario, "VER_INVENTARIO") && <AlertaStockBajo />}
             <AlertaSinRecoger />
 
             <div className="flex items-center justify-between mb-4">

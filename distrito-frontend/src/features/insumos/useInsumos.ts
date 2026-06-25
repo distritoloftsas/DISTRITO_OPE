@@ -17,9 +17,15 @@ export function useInsumos() {
   });
 }
 
+import { useAuthStore } from "../../store/authStore";
+import { tienePermiso } from "../../types/auth";
+
 export function useInsumosStockBajo() {
+  const usuario = useAuthStore((s) => s.usuario);
+  const habilitado = tienePermiso(usuario, "VER_INVENTARIO");
   return useQuery({
     queryKey: ["insumos-stock-bajo"],
+    enabled: habilitado,
     queryFn: async () => {
       const { data } = await api.get<InsumoResponse[]>("/insumos/stock-bajo");
       return data;

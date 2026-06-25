@@ -31,9 +31,9 @@ public class InsumoService {
         Usuario actual = cargarUsuarioActual(principal);
         validarRolStaff(actual);
 
-        Long sedeId = actual.getRol() == RolUsuario.GERENTE_SEDE
-                ? sedeDelEmpleado(actual).getId()
-                : sedeIdParam;
+        Long sedeId = actual.getRol() == RolUsuario.SUPER_ADMIN
+                ? sedeIdParam
+                : sedeDelEmpleado(actual).getId();
 
         return insumoRepository.listar(sedeId).stream()
                 .map(InsumoResponse::from)
@@ -45,9 +45,9 @@ public class InsumoService {
         Usuario actual = cargarUsuarioActual(principal);
         validarRolStaff(actual);
 
-        Long sedeId = actual.getRol() == RolUsuario.GERENTE_SEDE
-                ? sedeDelEmpleado(actual).getId()
-                : null;
+        Long sedeId = actual.getRol() == RolUsuario.SUPER_ADMIN
+                ? null
+                : sedeDelEmpleado(actual).getId();
         if (sedeId == null) return List.of();
 
         return insumoRepository.listarStockBajo(sedeId).stream()
@@ -173,9 +173,9 @@ public class InsumoService {
         Insumo i = insumoRepository.findById(insumoId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Insumo no encontrado: " + insumoId));
         validarRolStaff(actual);
-        if (actual.getRol() == RolUsuario.GERENTE_SEDE) {
-            Long sedeGerente = sedeDelEmpleado(actual).getId();
-            if (!i.getSede().getId().equals(sedeGerente)) {
+        if (actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            Long sedeUsuario = sedeDelEmpleado(actual).getId();
+            if (!i.getSede().getId().equals(sedeUsuario)) {
                 throw new ReglaNegocioException("No puedes operar insumos de otra sede.");
             }
         }
@@ -183,14 +183,17 @@ public class InsumoService {
     }
 
     private Long resolverSedeDestino(Usuario actual, Long sedeRequest) {
-        if (actual.getRol() == RolUsuario.GERENTE_SEDE) return sedeDelEmpleado(actual).getId();
+        if (actual.getRol() != RolUsuario.SUPER_ADMIN) return sedeDelEmpleado(actual).getId();
         if (sedeRequest == null) throw new ReglaNegocioException("Debes indicar la sede del insumo.");
         return sedeRequest;
     }
 
     private void validarRolStaff(Usuario u) {
-        if (u.getRol() != RolUsuario.GERENTE_SEDE && u.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente o el super admin pueden gestionar insumos.");
+        // El control de acceso fino se hace en el controller via @PreAuthorize
+        // (permiso VER_INVENTARIO). Aqui solo bloqueamos a clientes, que nunca
+        // deberian llegar a este service por el filtro de Spring Security.
+        if (u.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no manejan inventario.");
         }
     }
 
