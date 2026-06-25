@@ -17,6 +17,7 @@ import { InsumosTabla } from "../features/insumos/InsumosTabla";
 import { NuevoInsumoModal } from "../features/insumos/NuevoInsumoModal";
 import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
 import { AlertaSinRecoger } from "../features/pedidos/AlertaSinRecoger";
+import { TurnoSection } from "../features/turno/TurnoSection";
 import { RecetaPlanSection } from "../features/planes/RecetaPlanSection";
 import { ToleranciaSection } from "../features/sede/ToleranciaSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
@@ -90,6 +91,7 @@ export function GerentePage() {
       <main className="flex-1 p-6">
         {vista === "operacion" && (
           <>
+            <TurnoSection />
             <AlertaStockBajo />
             <AlertaSinRecoger />
 
