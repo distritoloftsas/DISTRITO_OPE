@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useConsumoInsumos } from "./useConsumoInsumos";
-import { ETIQUETA_UNIDAD } from "../../types/insumo";
+import { useVentas } from "./useVentas";
+import { etiquetaEstado } from "../../types/pedido";
 import { descargarXlsx } from "../../lib/descargarBlob";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -9,7 +9,10 @@ const formatoCOP = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-const formatoCantidad = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 3 });
+const formatoFechaHora = new Intl.DateTimeFormat("es-CO", {
+  dateStyle: "short",
+  timeStyle: "short",
+});
 
 function hoyISO(): string {
   const d = new Date();
@@ -30,16 +33,16 @@ interface Props {
   sedeId?: number;
 }
 
-export function ConsumoInsumosSection({ sedeId }: Props = {}) {
+export function VentasSection({ sedeId }: Props = {}) {
   const [desde, setDesde] = useState(hace30DiasISO());
   const [hasta, setHasta] = useState(hoyISO());
 
-  const { data, isLoading, isError, error } = useConsumoInsumos(desde, hasta, sedeId);
+  const { data, isLoading, isError, error } = useVentas(desde, hasta, sedeId);
 
   return (
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h2 className="text-base font-medium">Gasto en insumos</h2>
+        <h2 className="text-base font-medium">Ventas de lavadas</h2>
         <div className="flex items-center gap-2 text-xs">
           <label className="text-stone-600">Desde:</label>
           <input
@@ -62,9 +65,9 @@ export function ConsumoInsumosSection({ sedeId }: Props = {}) {
             type="button"
             onClick={() =>
               descargarXlsx(
-                "/reportes/consumo-insumos.xlsx",
+                "/reportes/ventas.xlsx",
                 { desde, hasta, sedeId },
-                `gasto-insumos-${desde}_${hasta}.xlsx`
+                `ventas-${desde}_${hasta}.xlsx`
               )
             }
             className="text-xs px-3 py-1.5 border border-distrito-gold-dark text-distrito-black rounded-md hover:bg-distrito-cream"
@@ -85,62 +88,53 @@ export function ConsumoInsumosSection({ sedeId }: Props = {}) {
       {data && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-            <Tarjeta titulo="Costo total en insumos" valor={formatoCOP.format(data.costoTotal)} />
-            <Tarjeta titulo="Pedidos con consumo" valor={data.pedidosAfectados.toString()} />
+            <Tarjeta titulo="Total ventas" valor={formatoCOP.format(data.totalVentas)} />
+            <Tarjeta titulo="# Lavadas" valor={data.totalLavadas.toString()} />
             <Tarjeta
-              titulo="Costo promedio por pedido"
+              titulo="Ticket promedio"
               valor={formatoCOP.format(
-                data.pedidosAfectados > 0 ? data.costoTotal / data.pedidosAfectados : 0
+                data.totalLavadas > 0 ? data.totalVentas / data.totalLavadas : 0
               )}
             />
           </div>
 
           {data.lineas.length === 0 ? (
             <div className="border border-dashed border-stone-300 rounded-lg p-8 text-center text-sm text-stone-500">
-              No hubo consumos de insumos en este rango.
+              No hay ventas en este rango.
             </div>
           ) : (
             <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-stone-50 text-stone-600 text-xs">
                   <tr>
-                    <th className="text-left px-4 py-2">Insumo</th>
-                    <th className="text-right px-4 py-2">Cantidad</th>
-                    <th className="text-right px-4 py-2">Costo total</th>
-                    <th className="text-right px-4 py-2">Movimientos</th>
-                    <th className="text-right px-4 py-2">Pedidos</th>
+                    <th className="text-left px-4 py-2">Fecha</th>
+                    <th className="text-left px-4 py-2">Pedido</th>
+                    <th className="text-left px-4 py-2">Cliente</th>
+                    <th className="text-left px-4 py-2">Plan</th>
+                    <th className="text-right px-4 py-2">Total</th>
+                    <th className="text-center px-4 py-2">Pagado</th>
+                    <th className="text-left px-4 py-2">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.lineas.map((l) => (
-                    <tr key={l.insumoId} className="border-t border-stone-100">
-                      <td className="px-4 py-2 font-medium">{l.insumoNombre}</td>
-                      <td className="px-4 py-2 text-xs text-right">
-                        {formatoCantidad.format(l.cantidadTotal)} {ETIQUETA_UNIDAD[l.unidad]}
+                    <tr key={l.pedidoId} className="border-t border-stone-100">
+                      <td className="px-4 py-2 text-xs text-stone-600">
+                        {formatoFechaHora.format(new Date(l.fechaRecepcion))}
                       </td>
+                      <td className="px-4 py-2 text-xs font-medium">{l.codigoQr}</td>
+                      <td className="px-4 py-2 text-xs">{l.clienteNombre}</td>
+                      <td className="px-4 py-2 text-xs">{l.planNombre}</td>
                       <td className="px-4 py-2 text-xs text-right font-medium">
-                        {formatoCOP.format(l.costoTotal)}
+                        {formatoCOP.format(l.total)}
                       </td>
-                      <td className="px-4 py-2 text-xs text-right text-stone-500">
-                        {l.movimientos}
+                      <td className="px-4 py-2 text-xs text-center">
+                        {l.pagado ? "Sí" : "No"}
                       </td>
-                      <td className="px-4 py-2 text-xs text-right text-stone-500">
-                        {l.pedidosAfectados}
-                      </td>
+                      <td className="px-4 py-2 text-xs">{etiquetaEstado(l.estado)}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-stone-50 text-xs">
-                  <tr>
-                    <td colSpan={2} className="px-4 py-2 text-right text-stone-600">
-                      Total general
-                    </td>
-                    <td className="px-4 py-2 text-right font-medium">
-                      {formatoCOP.format(data.costoTotal)}
-                    </td>
-                    <td colSpan={2} />
-                  </tr>
-                </tfoot>
               </table>
             </div>
           )}

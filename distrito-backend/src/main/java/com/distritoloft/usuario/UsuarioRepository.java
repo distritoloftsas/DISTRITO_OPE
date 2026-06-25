@@ -33,6 +33,17 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     @Query("""
             SELECT u FROM Usuario u
+            LEFT JOIN FETCH u.clientePerfil
+            WHERE u.rol = :rol
+              AND u.activo = true
+            ORDER BY u.nombre
+            """)
+    List<Usuario> listarClientes(@Param("rol") RolUsuario rol);
+
+    long countByRolAndActivoTrue(RolUsuario rol);
+
+    @Query("""
+            SELECT u FROM Usuario u
             LEFT JOIN FETCH u.empleadoPerfil ep
             LEFT JOIN FETCH ep.sede
             WHERE u.rol IN :roles

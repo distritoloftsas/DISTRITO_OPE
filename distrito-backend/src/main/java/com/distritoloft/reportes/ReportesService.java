@@ -12,8 +12,10 @@ import com.distritoloft.common.exception.ReglaNegocioException;
 import com.distritoloft.pedido.Pago;
 import com.distritoloft.pedido.PagoRepository;
 import com.distritoloft.pedido.PedidoRepository;
+import com.distritoloft.pedido.Pedido;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
+import com.distritoloft.reportes.dto.VentasResponse;
 import com.distritoloft.sede.Sede;
 import com.distritoloft.sede.SedeRepository;
 import com.distritoloft.usuario.Usuario;
@@ -175,6 +177,52 @@ public class ReportesService {
         return new ConsumoInsumosResponse(
                 desdeReal, hastaReal, sede.getId(), sede.getNombre(),
                 costoTotal, pedidosUnicos.size(), lineas
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public VentasResponse ventas(CustomUserDetails principal,
+                                 LocalDate desde, LocalDate hasta,
+                                 Long sedeIdParam) {
+        Usuario actual = cargarUsuarioActual(principal);
+        if (actual.getRol() != RolUsuario.GERENTE_SEDE && actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            throw new ReglaNegocioException("Solo el gerente o el super admin pueden ver este reporte.");
+        }
+
+        LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA);
+        LocalDate hastaReal = hasta != null ? hasta : LocalDate.now(ZONA_COLOMBIA);
+        if (hastaReal.isBefore(desdeReal)) {
+            throw new ReglaNegocioException("La fecha hasta no puede ser anterior a desde.");
+        }
+
+        Long sedeId = resolverSede(actual, sedeIdParam);
+        Sede sede = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+
+        OffsetDateTime od = desdeReal.atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+        OffsetDateTime oh = hastaReal.plusDays(1).atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+
+        List<Pedido> pedidos = pedidoRepository.ventasPorSedeEnRango(sedeId, od, oh, EstadoPedido.CANCELADO);
+
+        BigDecimal totalVentas = BigDecimal.ZERO;
+        List<VentasResponse.LineaVenta> lineas = new java.util.ArrayList<>(pedidos.size());
+        for (Pedido p : pedidos) {
+            totalVentas = totalVentas.add(p.getTotal() != null ? p.getTotal() : BigDecimal.ZERO);
+            lineas.add(new VentasResponse.LineaVenta(
+                    p.getId(),
+                    p.getCodigoQr(),
+                    p.getFechaRecepcion(),
+                    p.getCliente() != null ? p.getCliente().getNombre() : "",
+                    p.getPlan() != null ? p.getPlan().getNombre() : "",
+                    p.getTotal(),
+                    p.getPagado(),
+                    p.getEstado()
+            ));
+        }
+
+        return new VentasResponse(
+                desdeReal, hastaReal, sede.getId(), sede.getNombre(),
+                totalVentas, pedidos.size(), lineas
         );
     }
 

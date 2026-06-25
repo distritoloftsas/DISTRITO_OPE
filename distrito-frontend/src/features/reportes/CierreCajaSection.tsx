@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useCierreCaja } from "./useCierreCaja";
 import type { MetodoPago } from "../../types/pedido";
+import { descargarXlsx } from "../../lib/descargarBlob";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -46,6 +47,19 @@ export function CierreCajaSection({ sedeId, titulo = "Cierre de caja" }: Props =
             max={hoyISO()}
             className="text-xs px-2 py-1.5 border border-stone-300 rounded-md"
           />
+          <button
+            type="button"
+            onClick={() =>
+              descargarXlsx(
+                "/reportes/cierre-caja.xlsx",
+                { fecha, sedeId },
+                `cierre-caja-${fecha}.xlsx`
+              )
+            }
+            className="text-xs px-3 py-1.5 border border-distrito-gold-dark text-distrito-black rounded-md hover:bg-distrito-cream"
+          >
+            ↓ Excel
+          </button>
         </div>
       </div>
 

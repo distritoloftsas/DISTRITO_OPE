@@ -99,4 +99,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
             """)
     long contarPorSedeYEstados(@Param("sedeId") Long sedeId,
                                @Param("estados") List<EstadoPedido> estados);
+
+    @Query("""
+            SELECT p FROM Pedido p
+            JOIN FETCH p.cliente
+            JOIN FETCH p.plan
+            WHERE p.sede.id = :sedeId
+              AND p.fechaRecepcion >= :desde AND p.fechaRecepcion < :hasta
+              AND p.estado <> :cancelado
+            ORDER BY p.fechaRecepcion DESC
+            """)
+    List<Pedido> ventasPorSedeEnRango(@Param("sedeId") Long sedeId,
+                                      @Param("desde") OffsetDateTime desde,
+                                      @Param("hasta") OffsetDateTime hasta,
+                                      @Param("cancelado") EstadoPedido cancelado);
 }

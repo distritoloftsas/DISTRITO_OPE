@@ -7,6 +7,8 @@ import { usePageTitle } from "../lib/usePageTitle";
 import { useSedesKpis, useCambiarActivaSede, type SedeKpis } from "../features/sedes/useSedes";
 import { NuevaSedeModal } from "../features/sedes/NuevaSedeModal";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
+import { VentasSection } from "../features/reportes/VentasSection";
+import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -160,10 +162,10 @@ export function AdminPage() {
         )}
 
         {sedeDetalle && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-3">
+          <div className="mt-8 space-y-8">
+            <div className="flex items-center justify-between">
               <h2 className="text-base font-medium">
-                Cierre de caja — {sedeDetalle.nombre}
+                Reportes — {sedeDetalle.nombre}
               </h2>
               <button
                 onClick={() => setSedeDetalle(null)}
@@ -176,6 +178,8 @@ export function AdminPage() {
               sedeId={sedeDetalle.id}
               titulo={`Cierre · ${sedeDetalle.nombre}`}
             />
+            <VentasSection sedeId={sedeDetalle.id} />
+            <ConsumoInsumosSection sedeId={sedeDetalle.id} />
           </div>
         )}
       </main>

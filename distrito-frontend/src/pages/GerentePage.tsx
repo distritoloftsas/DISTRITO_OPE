@@ -10,6 +10,7 @@ import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquina
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
+import { VentasSection } from "../features/reportes/VentasSection";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { InsumosTabla } from "../features/insumos/InsumosTabla";
@@ -17,12 +18,14 @@ import { NuevoInsumoModal } from "../features/insumos/NuevoInsumoModal";
 import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
 import { RecetaPlanSection } from "../features/planes/RecetaPlanSection";
 import { ToleranciaSection } from "../features/sede/ToleranciaSection";
+import { ClientesTabla } from "../features/clientes/ClientesTabla";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
-type Vista = "operacion" | "equipo" | "inventario" | "maquinas" | "reportes";
+type Vista = "operacion" | "clientes" | "equipo" | "inventario" | "maquinas" | "reportes";
 
 const VISTAS: { id: Vista; label: string }[] = [
   { id: "operacion", label: "Operación" },
+  { id: "clientes", label: "Clientes" },
   { id: "equipo", label: "Equipo" },
   { id: "inventario", label: "Inventario" },
   { id: "maquinas", label: "Máquinas" },
@@ -124,6 +127,13 @@ export function GerentePage() {
           </>
         )}
 
+        {vista === "clientes" && (
+          <>
+            <h2 className="text-base font-medium mb-4">Clientes</h2>
+            <ClientesTabla />
+          </>
+        )}
+
         {vista === "equipo" && (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -197,6 +207,7 @@ export function GerentePage() {
         {vista === "reportes" && (
           <div className="space-y-8">
             <CierreCajaSection />
+            <VentasSection />
             <ConsumoInsumosSection />
           </div>
         )}
