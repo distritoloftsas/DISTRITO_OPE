@@ -13,6 +13,8 @@ export function CicloCountdown({ pedido, className }: Props) {
     pedido.fechaInicioSecado,
     pedido.plan.duracionLavadoMinutos,
     pedido.plan.duracionSecadoMinutos,
+    pedido.sede.toleranciaPreLavadoMinutos,
+    pedido.sede.toleranciaPostLavadoMinutos,
   ]);
 
   const [ahora, setAhora] = useState<number>(() => Date.now());
@@ -61,18 +63,20 @@ interface CicloInfo {
 }
 
 function restanteCiclo(p: PedidoResponse): CicloInfo | null {
+  const tolPre = (p.sede.toleranciaPreLavadoMinutos ?? 0) * 60_000;
+  const tolPost = (p.sede.toleranciaPostLavadoMinutos ?? 0) * 60_000;
   if (p.estado === "LAVANDO" && p.fechaInicioLavado) {
     return {
       etapa: "lavado",
       inicioMs: new Date(p.fechaInicioLavado).getTime(),
-      duracionMs: p.plan.duracionLavadoMinutos * 60_000,
+      duracionMs: p.plan.duracionLavadoMinutos * 60_000 + tolPre,
     };
   }
   if (p.estado === "SECANDO" && p.fechaInicioSecado) {
     return {
       etapa: "secado",
       inicioMs: new Date(p.fechaInicioSecado).getTime(),
-      duracionMs: p.plan.duracionSecadoMinutos * 60_000,
+      duracionMs: p.plan.duracionSecadoMinutos * 60_000 + tolPost,
     };
   }
   return null;

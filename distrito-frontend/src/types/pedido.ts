@@ -13,7 +13,12 @@ export interface PedidoResponse {
   id: number;
   codigoQr: string;
   cliente: { id: number; nombre: string; telefono: string | null };
-  sede: { id: number; nombre: string };
+  sede: {
+    id: number;
+    nombre: string;
+    toleranciaPreLavadoMinutos?: number;
+    toleranciaPostLavadoMinutos?: number;
+  };
   plan: {
     id: number;
     nombre: string;

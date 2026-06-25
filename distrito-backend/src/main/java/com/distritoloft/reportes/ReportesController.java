@@ -2,6 +2,7 @@ package com.distritoloft.reportes;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,5 +28,15 @@ public class ReportesController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestParam(required = false) Long sedeId) {
         return service.cierreCaja(principal, fecha, sedeId);
+    }
+
+    @GetMapping("/consumo-insumos")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ConsumoInsumosResponse consumoInsumos(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        return service.consumoInsumos(principal, desde, hasta, sedeId);
     }
 }

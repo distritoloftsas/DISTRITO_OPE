@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useInsumos } from "./useInsumos";
 import { MovimientoInsumoModal } from "./MovimientoInsumoModal";
+import { HistorialInsumoModal } from "./HistorialInsumoModal";
 import { ETIQUETA_UNIDAD, type InsumoResponse } from "../../types/insumo";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -16,6 +17,7 @@ const formatoCantidad = new Intl.NumberFormat("es-CO", {
 export function InsumosTabla() {
   const { data, isLoading, isError } = useInsumos();
   const [movimiento, setMovimiento] = useState<InsumoResponse | null>(null);
+  const [historial, setHistorial] = useState<InsumoResponse | null>(null);
 
   if (isLoading) return <p className="text-sm text-stone-500">Cargando insumos...</p>;
   if (isError) return <p className="text-sm text-red-600">No se pudieron cargar los insumos.</p>;
@@ -76,7 +78,13 @@ export function InsumosTabla() {
                   <td className="px-4 py-2 text-xs text-right font-medium">
                     {formatoCOP.format(i.valorInventario)}
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right space-x-1 whitespace-nowrap">
+                    <button
+                      onClick={() => setHistorial(i)}
+                      className="text-xs px-2 py-1 border border-stone-300 rounded"
+                    >
+                      Historial
+                    </button>
                     <button
                       onClick={() => setMovimiento(i)}
                       className="text-xs px-2 py-1 border border-stone-300 rounded"
@@ -107,6 +115,13 @@ export function InsumosTabla() {
           insumo={movimiento}
           onClose={() => setMovimiento(null)}
           onRegistrado={() => setMovimiento(null)}
+        />
+      )}
+
+      {historial && (
+        <HistorialInsumoModal
+          insumo={historial}
+          onClose={() => setHistorial(null)}
         />
       )}
     </>

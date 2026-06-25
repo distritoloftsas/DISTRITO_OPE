@@ -110,8 +110,19 @@ public class InsumoService {
         Insumo i = cargarInsumoConPermiso(actual, insumoId);
 
         BigDecimal nuevoStock;
+        BigDecimal costoMovimiento = req.costoUnitario() != null ? req.costoUnitario() : i.getCostoUnitario();
+
         if (req.tipo() == TipoMovimientoInsumo.ENTRADA || req.tipo() == TipoMovimientoInsumo.AJUSTE) {
             nuevoStock = i.getStockActual().add(req.cantidad());
+
+            // Solo en ENTRADA con costo recalcular el costo promedio ponderado del insumo.
+            // (Un AJUSTE no implica compra, conservamos el costo actual.)
+            if (req.tipo() == TipoMovimientoInsumo.ENTRADA && req.costoUnitario() != null) {
+                i.setCostoUnitario(costoPromedioPonderado(
+                        i.getStockActual(), i.getCostoUnitario(),
+                        req.cantidad(), req.costoUnitario()
+                ));
+            }
         } else {
             nuevoStock = i.getStockActual().subtract(req.cantidad());
             if (nuevoStock.compareTo(BigDecimal.ZERO) < 0) {
@@ -119,6 +130,8 @@ public class InsumoService {
                         "No hay suficiente stock de " + i.getNombre()
                                 + " (actual " + formatoCantidad(i.getStockActual()) + ").");
             }
+            // En BAJA/CONSUMO el costo del movimiento es el costo actual del insumo.
+            costoMovimiento = i.getCostoUnitario();
         }
         i.setStockActual(nuevoStock);
 
@@ -126,12 +139,24 @@ public class InsumoService {
         mov.setInsumo(i);
         mov.setTipo(req.tipo());
         mov.setCantidad(req.cantidad());
-        mov.setCostoUnitario(req.costoUnitario() != null ? req.costoUnitario() : i.getCostoUnitario());
+        mov.setCostoUnitario(costoMovimiento);
         mov.setMotivo(req.motivo());
         mov.setEmpleado(actual);
         movimientoRepository.save(mov);
 
         return InsumoResponse.from(i);
+    }
+
+    /**
+     * Costo promedio ponderado: (stockActual * costoActual + cantidadEntra * costoEntra) / (stockActual + cantidadEntra)
+     */
+    private static BigDecimal costoPromedioPonderado(
+            BigDecimal stockActual, BigDecimal costoActual,
+            BigDecimal cantidadEntra, BigDecimal costoEntra) {
+        BigDecimal numerador = stockActual.multiply(costoActual).add(cantidadEntra.multiply(costoEntra));
+        BigDecimal denominador = stockActual.add(cantidadEntra);
+        if (denominador.compareTo(BigDecimal.ZERO) == 0) return costoEntra;
+        return numerador.divide(denominador, 4, java.math.RoundingMode.HALF_UP);
     }
 
     @Transactional(readOnly = true)

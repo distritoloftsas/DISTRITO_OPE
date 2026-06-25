@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRegistrarMovimiento } from "./useInsumos";
 import { useEscape } from "../../lib/useEscape";
 import {
   ETIQUETA_UNIDAD,
   type InsumoResponse,
   type TipoMovimientoInsumo,
+  type UnidadInsumo,
 } from "../../types/insumo";
 
 interface Props {
@@ -19,25 +20,70 @@ const TIPOS: { value: TipoMovimientoInsumo; label: string; hint: string }[] = [
   { value: "BAJA", label: "Baja", hint: "Descarte, vencido o dañado" },
 ];
 
+const UNIDAD_MAYOR: Partial<Record<UnidadInsumo, { unidad: UnidadInsumo; factor: number }>> = {
+  MILILITRO: { unidad: "LITRO", factor: 1000 },
+  GRAMO: { unidad: "KILO", factor: 1000 },
+};
+
+const formatoCOP = new Intl.NumberFormat("es-CO", {
+  style: "currency",
+  currency: "COP",
+  maximumFractionDigits: 0,
+});
+
+const formatoCantidad = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 4 });
+
 export function MovimientoInsumoModal({ insumo, onClose, onRegistrado }: Props) {
   useEscape(onClose);
   const [tipo, setTipo] = useState<TipoMovimientoInsumo>("ENTRADA");
-  const [cantidad, setCantidad] = useState("");
-  const [costoUnitario, setCostoUnitario] = useState(String(insumo.costoUnitario));
   const [motivo, setMotivo] = useState("");
 
+  // ENTRADA: "compra" (cantidad+total) o "detallado" (cantidad+costo unitario)
+  const [modoEntrada, setModoEntrada] = useState<"compra" | "detallado">("compra");
+  const [cantidadCompra, setCantidadCompra] = useState("");
+  const [unidadCompra, setUnidadCompra] = useState<UnidadInsumo>(insumo.unidad);
+  const [costoTotal, setCostoTotal] = useState("");
+
+  // Detallado / AJUSTE / BAJA
+  const [cantidad, setCantidad] = useState("");
+  const [costoUnitario, setCostoUnitario] = useState(String(insumo.costoUnitario));
+
   const registrar = useRegistrarMovimiento();
+  const unidadBase = ETIQUETA_UNIDAD[insumo.unidad];
+  const mayor = UNIDAD_MAYOR[insumo.unidad];
+
+  const factor = unidadCompra === insumo.unidad ? 1 : mayor?.factor ?? 1;
+  const cantidadEnBase = useMemo(() => {
+    const n = Number(cantidadCompra);
+    return Number.isFinite(n) ? n * factor : 0;
+  }, [cantidadCompra, factor]);
+
+  const costoUnitarioCalc = useMemo(() => {
+    const total = Number(costoTotal);
+    if (!Number.isFinite(total) || cantidadEnBase <= 0) return 0;
+    return total / cantidadEnBase;
+  }, [costoTotal, cantidadEnBase]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await registrar.mutateAsync({
-        insumoId: insumo.id,
-        tipo,
-        cantidad: Number(cantidad),
-        costoUnitario: tipo === "ENTRADA" ? Number(costoUnitario) : undefined,
-        motivo: motivo || undefined,
-      });
+      if (tipo === "ENTRADA" && modoEntrada === "compra") {
+        await registrar.mutateAsync({
+          insumoId: insumo.id,
+          tipo: "ENTRADA",
+          cantidad: cantidadEnBase,
+          costoUnitario: costoUnitarioCalc,
+          motivo: motivo || undefined,
+        });
+      } else {
+        await registrar.mutateAsync({
+          insumoId: insumo.id,
+          tipo,
+          cantidad: Number(cantidad),
+          costoUnitario: tipo === "ENTRADA" ? Number(costoUnitario) : undefined,
+          motivo: motivo || undefined,
+        });
+      }
       onRegistrado();
     } catch {
       // mostrado abajo
@@ -45,7 +91,6 @@ export function MovimientoInsumoModal({ insumo, onClose, onRegistrado }: Props) 
   };
 
   const errorMsg = errorMensaje(registrar.error);
-  const unidad = ETIQUETA_UNIDAD[insumo.unidad];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -54,7 +99,7 @@ export function MovimientoInsumoModal({ insumo, onClose, onRegistrado }: Props) 
           <div>
             <h3 className="text-base font-medium">Movimiento de inventario</h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              {insumo.nombre} · Stock actual {insumo.stockActual} {unidad}
+              {insumo.nombre} · Stock actual {insumo.stockActual} {unidadBase}
             </p>
           </div>
           <button onClick={onClose} className="text-stone-400 text-xl leading-none">
@@ -84,36 +129,128 @@ export function MovimientoInsumoModal({ insumo, onClose, onRegistrado }: Props) 
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs text-stone-600 mb-1">Cantidad ({unidad})</label>
-            <input
-              type="number"
-              step="0.001"
-              min="0.001"
-              value={cantidad}
-              onChange={(e) => setCantidad(e.target.value)}
-              required
-              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
-            />
-          </div>
-
           {tipo === "ENTRADA" && (
-            <div>
-              <label className="block text-xs text-stone-600 mb-1">
-                Costo por {unidad} (COP)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={costoUnitario}
-                onChange={(e) => setCostoUnitario(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
-              />
-              <p className="text-[10px] text-stone-500 mt-1">
-                Se usa para recalcular el costo del inventario.
-              </p>
+            <div className="flex gap-1 text-[11px] border border-stone-200 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => setModoEntrada("compra")}
+                className={`flex-1 py-1.5 rounded ${
+                  modoEntrada === "compra" ? "bg-distrito-cream font-medium" : "text-stone-500"
+                }`}
+              >
+                Por compra (recomendado)
+              </button>
+              <button
+                type="button"
+                onClick={() => setModoEntrada("detallado")}
+                className={`flex-1 py-1.5 rounded ${
+                  modoEntrada === "detallado" ? "bg-distrito-cream font-medium" : "text-stone-500"
+                }`}
+              >
+                Detallado
+              </button>
             </div>
+          )}
+
+          {tipo === "ENTRADA" && modoEntrada === "compra" ? (
+            <>
+              <div>
+                <label className="block text-xs text-stone-600 mb-1">Cantidad comprada</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    value={cantidadCompra}
+                    onChange={(e) => setCantidadCompra(e.target.value)}
+                    required
+                    className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                    placeholder="Ej: 5"
+                  />
+                  {mayor ? (
+                    <select
+                      value={unidadCompra}
+                      onChange={(e) => setUnidadCompra(e.target.value as UnidadInsumo)}
+                      className="px-3 py-2 text-sm border border-stone-300 rounded-lg bg-white"
+                    >
+                      <option value={mayor.unidad}>{ETIQUETA_UNIDAD[mayor.unidad]}</option>
+                      <option value={insumo.unidad}>{unidadBase}</option>
+                    </select>
+                  ) : (
+                    <span className="px-3 py-2 text-sm text-stone-500 border border-stone-200 rounded-lg bg-stone-50">
+                      {unidadBase}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-stone-600 mb-1">
+                  Costo total pagado (COP)
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={costoTotal}
+                  onChange={(e) => setCostoTotal(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                  placeholder="Ej: 50000"
+                />
+              </div>
+
+              {cantidadEnBase > 0 && Number(costoTotal) > 0 && (
+                <div className="bg-distrito-cream/60 border border-distrito-gold/40 rounded-lg p-3 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-stone-600">Ingresa al inventario:</span>
+                    <span className="font-medium">
+                      {formatoCantidad.format(cantidadEnBase)} {unidadBase}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-600">Costo por {unidadBase}:</span>
+                    <span className="font-medium">{formatoCOP.format(costoUnitarioCalc)}</span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs text-stone-600 mb-1">
+                  Cantidad ({unidadBase})
+                </label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  value={cantidad}
+                  onChange={(e) => setCantidad(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                />
+              </div>
+
+              {tipo === "ENTRADA" && (
+                <div>
+                  <label className="block text-xs text-stone-600 mb-1">
+                    Costo por {unidadBase} (COP)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={costoUnitario}
+                    onChange={(e) => setCostoUnitario(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                  />
+                  <p className="text-[10px] text-stone-500 mt-1">
+                    Se usa para recalcular el costo del inventario.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <div>

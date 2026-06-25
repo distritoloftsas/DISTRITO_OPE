@@ -16,4 +16,17 @@ public interface MovimientoInsumoRepository extends JpaRepository<MovimientoInsu
             ORDER BY m.fecha DESC
             """)
     List<MovimientoInsumo> historialPorInsumo(@Param("insumoId") Long insumoId);
+
+    @Query("""
+            SELECT m FROM MovimientoInsumo m
+            JOIN FETCH m.insumo i
+            WHERE i.sede.id = :sedeId
+              AND m.tipo = :tipo
+              AND m.fecha >= :desde AND m.fecha < :hasta
+            """)
+    List<MovimientoInsumo> movimientosPorTipoEnRango(
+            @Param("sedeId") Long sedeId,
+            @Param("tipo") com.distritoloft.common.enums.TipoMovimientoInsumo tipo,
+            @Param("desde") java.time.OffsetDateTime desde,
+            @Param("hasta") java.time.OffsetDateTime hasta);
 }

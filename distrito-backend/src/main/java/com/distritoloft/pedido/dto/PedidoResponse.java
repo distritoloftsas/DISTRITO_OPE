@@ -27,7 +27,12 @@ public record PedidoResponse(
         MaquinaResumen secadora
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
-    public record SedeResumen(Long id, String nombre) {}
+    public record SedeResumen(
+            Long id,
+            String nombre,
+            Integer toleranciaPreLavadoMinutos,
+            Integer toleranciaPostLavadoMinutos
+    ) {}
     public record PlanResumen(
             Long id,
             String nombre,
@@ -44,7 +49,12 @@ public record PedidoResponse(
                 p.getId(),
                 p.getCodigoQr(),
                 new ClienteResumen(p.getCliente().getId(), p.getCliente().getNombre(), p.getCliente().getTelefono()),
-                new SedeResumen(p.getSede().getId(), p.getSede().getNombre()),
+                new SedeResumen(
+                        p.getSede().getId(),
+                        p.getSede().getNombre(),
+                        p.getSede().getToleranciaPreLavadoMinutos(),
+                        p.getSede().getToleranciaPostLavadoMinutos()
+                ),
                 new PlanResumen(
                         p.getPlan().getId(),
                         p.getPlan().getNombre(),

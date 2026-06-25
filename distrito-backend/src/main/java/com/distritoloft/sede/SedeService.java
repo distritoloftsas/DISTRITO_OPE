@@ -12,6 +12,7 @@ import com.distritoloft.maquina.MaquinaRepository;
 import com.distritoloft.pedido.Pago;
 import com.distritoloft.pedido.PagoRepository;
 import com.distritoloft.pedido.PedidoRepository;
+import com.distritoloft.sede.SedeController.MiSedeResponse;
 import com.distritoloft.sede.dto.CrearSedeRequest;
 import com.distritoloft.sede.dto.SedeResumenAdminResponse;
 import com.distritoloft.usuario.Usuario;
@@ -103,6 +104,44 @@ public class SedeService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
         s.setActiva(activa);
         return s;
+    }
+
+    @Transactional
+    public MiSedeResponse actualizarTolerancia(CustomUserDetails principal, Long sedeId, int preMin, int postMin) {
+        if (preMin < 0 || postMin < 0) {
+            throw new ReglaNegocioException("La tolerancia no puede ser negativa.");
+        }
+        Usuario actual = usuarioRepository.findById(principal.getUsuario().getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario actual no encontrado."));
+
+        if (actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            if (actual.getRol() != RolUsuario.GERENTE_SEDE
+                    || actual.getEmpleadoPerfil() == null
+                    || actual.getEmpleadoPerfil().getSede() == null
+                    || !actual.getEmpleadoPerfil().getSede().getId().equals(sedeId)) {
+                throw new ReglaNegocioException("No puede modificar la tolerancia de otra sede.");
+            }
+        }
+        Sede s = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+        s.setToleranciaPreLavadoMinutos(preMin);
+        s.setToleranciaPostLavadoMinutos(postMin);
+        return new MiSedeResponse(s.getId(), s.getNombre(),
+                s.getToleranciaPreLavadoMinutos(), s.getToleranciaPostLavadoMinutos());
+    }
+
+    @Transactional(readOnly = true)
+    public MiSedeResponse miSede(CustomUserDetails principal) {
+        Usuario actual = usuarioRepository.findById(principal.getUsuario().getId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario actual no encontrado."));
+        if (actual.getEmpleadoPerfil() == null || actual.getEmpleadoPerfil().getSede() == null) {
+            throw new ReglaNegocioException("El usuario no tiene sede asignada.");
+        }
+        Long sedeId = actual.getEmpleadoPerfil().getSede().getId();
+        Sede s = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+        return new MiSedeResponse(s.getId(), s.getNombre(),
+                s.getToleranciaPreLavadoMinutos(), s.getToleranciaPostLavadoMinutos());
     }
 
     private void crearMaquina(Sede sede, TipoMaquina tipo, short numero) {
