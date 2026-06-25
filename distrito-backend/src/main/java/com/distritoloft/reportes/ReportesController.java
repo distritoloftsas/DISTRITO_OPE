@@ -26,19 +26,19 @@ public class ReportesController {
     private static final MediaType XLSX = MediaType.parseMediaType(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
-    // Cierre de caja: lo necesita la empleada al final del turno para verificar
-    // las ventas del dia. Ventas y consumo de insumos son data de gestion mas
-    // sensible: solo gerente/super.
-    private static final String CIERRE_ROLES =
-            "hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')";
-    private static final String GESTION_ROLES =
-            "hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')";
+    // Permisos finos (PermisoChecker). El super admin siempre pasa.
+    private static final String VER_CIERRE = "@permisoChecker.tiene('VER_CIERRE_CAJA')";
+    private static final String VER_VENTAS = "@permisoChecker.tiene('VER_REPORTES_VENTAS')";
+    private static final String VER_INSUMOS = "@permisoChecker.tiene('VER_REPORTES_INSUMOS')";
+    private static final String EXP_CIERRE = "@permisoChecker.tieneTodos('VER_CIERRE_CAJA','EXPORTAR_REPORTES')";
+    private static final String EXP_VENTAS = "@permisoChecker.tieneTodos('VER_REPORTES_VENTAS','EXPORTAR_REPORTES')";
+    private static final String EXP_INSUMOS = "@permisoChecker.tieneTodos('VER_REPORTES_INSUMOS','EXPORTAR_REPORTES')";
 
     private final ReportesService service;
     private final ExcelExportService excelService;
 
     @GetMapping("/cierre-caja")
-    @PreAuthorize(CIERRE_ROLES)
+    @PreAuthorize(VER_CIERRE)
     public CierreCajaResponse cierreCaja(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
@@ -47,7 +47,7 @@ public class ReportesController {
     }
 
     @GetMapping(value = "/cierre-caja.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @PreAuthorize(CIERRE_ROLES)
+    @PreAuthorize(EXP_CIERRE)
     public ResponseEntity<byte[]> cierreCajaXlsx(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
@@ -59,7 +59,7 @@ public class ReportesController {
     }
 
     @GetMapping("/consumo-insumos")
-    @PreAuthorize(GESTION_ROLES)
+    @PreAuthorize(VER_INSUMOS)
     public ConsumoInsumosResponse consumoInsumos(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -69,7 +69,7 @@ public class ReportesController {
     }
 
     @GetMapping(value = "/consumo-insumos.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @PreAuthorize(GESTION_ROLES)
+    @PreAuthorize(EXP_INSUMOS)
     public ResponseEntity<byte[]> consumoInsumosXlsx(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -82,7 +82,7 @@ public class ReportesController {
     }
 
     @GetMapping("/ventas")
-    @PreAuthorize(GESTION_ROLES)
+    @PreAuthorize(VER_VENTAS)
     public VentasResponse ventas(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
@@ -92,7 +92,7 @@ public class ReportesController {
     }
 
     @GetMapping(value = "/ventas.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    @PreAuthorize(GESTION_ROLES)
+    @PreAuthorize(EXP_VENTAS)
     public ResponseEntity<byte[]> ventasXlsx(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,

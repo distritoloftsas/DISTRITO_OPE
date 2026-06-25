@@ -20,7 +20,7 @@ public class InsumoController {
     private final InsumoService service;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public List<InsumoResponse> listar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) Long sedeId) {
@@ -28,13 +28,13 @@ public class InsumoController {
     }
 
     @GetMapping("/stock-bajo")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public List<InsumoResponse> stockBajo(@AuthenticationPrincipal CustomUserDetails principal) {
         return service.stockBajoDeMiSede(principal);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public ResponseEntity<InsumoResponse> crear(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody CrearInsumoRequest req) {
@@ -42,7 +42,7 @@ public class InsumoController {
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public InsumoResponse actualizar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id,
@@ -51,7 +51,7 @@ public class InsumoController {
     }
 
     @PostMapping("/{id}/movimientos")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public ResponseEntity<InsumoResponse> registrarMovimiento(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id,
@@ -62,7 +62,7 @@ public class InsumoController {
     }
 
     @GetMapping("/{id}/historial")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_INVENTARIO')")
     public List<MovimientoResponse> historial(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id) {

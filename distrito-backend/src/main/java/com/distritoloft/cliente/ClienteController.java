@@ -37,32 +37,32 @@ public class ClienteController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_CLIENTES')")
     public List<ClienteResponse> buscar(@RequestParam(name = "q", required = false) String q) {
         return clienteService.buscar(q);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_CLIENTES')")
     public ClienteResponse obtener(@PathVariable Long id) {
         return clienteService.obtener(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_CLIENTES')")
     public ResponseEntity<ClienteResponse> crear(@Valid @RequestBody CrearClienteRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.crear(req));
     }
 
     @PatchMapping("/{id}")
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_CLIENTES')")
     public ClienteResponse actualizar(@PathVariable Long id,
                                       @Valid @RequestBody ActualizarClienteRequest req) {
         return clienteService.actualizar(id, req);
     }
 
     @GetMapping("/conteo")
-    @PreAuthorize("hasAnyRole('EMPLEADO', 'GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('VER_CLIENTES')")
     public Map<String, Long> conteo() {
         return Map.of("total", clienteService.contar());
     }

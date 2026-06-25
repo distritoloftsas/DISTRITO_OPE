@@ -16,7 +16,7 @@ import {
 } from "recharts";
 import { useVentas, type LineaVenta, type VentasResponse } from "./useVentas";
 import { etiquetaEstado } from "../../types/pedido";
-import { descargarXlsx } from "../../lib/descargarBlob";
+import { BotonDescargarExcel } from "./BotonDescargarExcel";
 import { COLORES, colorPorIndex } from "./colores";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -87,19 +87,11 @@ export function VentasSection({ sedeId }: Props = {}) {
             min={desde}
             className="px-2 py-1.5 border border-stone-300 rounded-md"
           />
-          <button
-            type="button"
-            onClick={() =>
-              descargarXlsx(
-                "/reportes/ventas.xlsx",
-                { desde, hasta, sedeId },
-                `ventas-${desde}_${hasta}.xlsx`
-              )
-            }
-            className="text-xs px-3 py-1.5 border border-distrito-gold-dark text-distrito-black rounded-md hover:bg-distrito-cream"
-          >
-            ↓ Excel
-          </button>
+          <BotonDescargarExcel
+            url="/reportes/ventas.xlsx"
+            params={{ desde, hasta, sedeId }}
+            filename={`ventas-${desde}_${hasta}.xlsx`}
+          />
         </div>
       </div>
 

@@ -55,7 +55,7 @@ public class SedeController {
     }
 
     @PatchMapping("/{id}/tolerancia")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE','SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_TOLERANCIA')")
     public MiSedeResponse actualizarTolerancia(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id,

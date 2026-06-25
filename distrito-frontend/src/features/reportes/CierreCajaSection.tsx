@@ -14,8 +14,8 @@ import {
 } from "recharts";
 import { useCierreCaja } from "./useCierreCaja";
 import type { MetodoPago } from "../../types/pedido";
-import { descargarXlsx } from "../../lib/descargarBlob";
 import { COLORES } from "./colores";
+import { BotonDescargarExcel } from "./BotonDescargarExcel";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -71,19 +71,11 @@ export function CierreCajaSection({ sedeId, titulo = "Cierre de caja" }: Props =
             max={hoyISO()}
             className="text-xs px-2 py-1.5 border border-stone-300 rounded-md"
           />
-          <button
-            type="button"
-            onClick={() =>
-              descargarXlsx(
-                "/reportes/cierre-caja.xlsx",
-                { fecha, sedeId },
-                `cierre-caja-${fecha}.xlsx`
-              )
-            }
-            className="text-xs px-3 py-1.5 border border-distrito-gold-dark text-distrito-black rounded-md hover:bg-distrito-cream"
-          >
-            ↓ Excel
-          </button>
+          <BotonDescargarExcel
+            url="/reportes/cierre-caja.xlsx"
+            params={{ fecha, sedeId }}
+            filename={`cierre-caja-${fecha}.xlsx`}
+          />
         </div>
       </div>
 

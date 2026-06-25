@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useConsumoInsumos } from "./useConsumoInsumos";
 import { ETIQUETA_UNIDAD } from "../../types/insumo";
-import { descargarXlsx } from "../../lib/descargarBlob";
+import { BotonDescargarExcel } from "./BotonDescargarExcel";
 import { colorPorIndex, COLORES } from "./colores";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -89,19 +89,11 @@ export function ConsumoInsumosSection({ sedeId }: Props = {}) {
             min={desde}
             className="px-2 py-1.5 border border-stone-300 rounded-md"
           />
-          <button
-            type="button"
-            onClick={() =>
-              descargarXlsx(
-                "/reportes/consumo-insumos.xlsx",
-                { desde, hasta, sedeId },
-                `gasto-insumos-${desde}_${hasta}.xlsx`
-              )
-            }
-            className="text-xs px-3 py-1.5 border border-distrito-gold-dark text-distrito-black rounded-md hover:bg-distrito-cream"
-          >
-            ↓ Excel
-          </button>
+          <BotonDescargarExcel
+            url="/reportes/consumo-insumos.xlsx"
+            params={{ desde, hasta, sedeId }}
+            filename={`gasto-insumos-${desde}_${hasta}.xlsx`}
+          />
         </div>
       </div>
 

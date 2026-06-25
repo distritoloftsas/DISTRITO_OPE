@@ -25,6 +25,7 @@ public class EmpleadoController {
     private final EmpleadoService service;
 
     @PostMapping
+    @PreAuthorize("@permisoChecker.tiene('VER_EQUIPO')")
     public ResponseEntity<EmpleadoResponse> crear(
             @AuthenticationPrincipal CustomUserDetails principal,
             @Valid @RequestBody CrearEmpleadoRequest req) {
@@ -32,6 +33,7 @@ public class EmpleadoController {
     }
 
     @GetMapping
+    @PreAuthorize("@permisoChecker.tiene('VER_EQUIPO')")
     public List<EmpleadoResponse> listar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @RequestParam(required = false) Long sedeId) {
@@ -39,6 +41,7 @@ public class EmpleadoController {
     }
 
     @PatchMapping("/{id}/activo")
+    @PreAuthorize("@permisoChecker.tiene('VER_EQUIPO')")
     public EmpleadoResponse cambiarActivo(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id,

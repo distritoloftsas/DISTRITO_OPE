@@ -21,7 +21,7 @@ public class PlanConsumoController {
     private final PlanConsumoService service;
 
     @GetMapping("/{planId}/consumos")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_RECETAS')")
     public List<PlanConsumoResponse> listar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long planId) {
@@ -29,7 +29,7 @@ public class PlanConsumoController {
     }
 
     @PostMapping("/{planId}/consumos")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_RECETAS')")
     public ResponseEntity<PlanConsumoResponse> crear(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long planId,
@@ -38,7 +38,7 @@ public class PlanConsumoController {
     }
 
     @DeleteMapping("/consumos/{id}")
-    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_RECETAS')")
     public ResponseEntity<Void> eliminar(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id) {
