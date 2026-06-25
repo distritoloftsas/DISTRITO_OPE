@@ -7,6 +7,9 @@ import { usePageTitle } from "../lib/usePageTitle";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
+import { TurnoSection } from "../features/turno/TurnoSection";
+import { AlertaSinRecoger } from "../features/pedidos/AlertaSinRecoger";
+import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 export function EmpleadoPage() {
@@ -48,6 +51,10 @@ export function EmpleadoPage() {
       </header>
 
       <main className="flex-1 p-6">
+        <TurnoSection />
+        <AlertaStockBajo />
+        <AlertaSinRecoger />
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-medium">Tablero de pedidos</h2>
           <button
