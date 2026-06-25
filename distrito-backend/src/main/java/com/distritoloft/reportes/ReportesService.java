@@ -119,8 +119,8 @@ public class ReportesService {
                                                  LocalDate desde, LocalDate hasta,
                                                  Long sedeIdParam) {
         Usuario actual = cargarUsuarioActual(principal);
-        if (actual.getRol() != RolUsuario.GERENTE_SEDE && actual.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente o el super admin pueden ver este reporte.");
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no tienen acceso a reportes.");
         }
 
         LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA);
@@ -185,8 +185,8 @@ public class ReportesService {
                                  LocalDate desde, LocalDate hasta,
                                  Long sedeIdParam) {
         Usuario actual = cargarUsuarioActual(principal);
-        if (actual.getRol() != RolUsuario.GERENTE_SEDE && actual.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente o el super admin pueden ver este reporte.");
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no tienen acceso a reportes.");
         }
 
         LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA);

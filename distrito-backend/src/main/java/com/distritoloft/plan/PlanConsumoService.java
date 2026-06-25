@@ -77,8 +77,10 @@ public class PlanConsumoService {
     }
 
     private void validarRolStaff(Usuario u) {
-        if (u.getRol() != RolUsuario.GERENTE_SEDE && u.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente o el super admin pueden editar las recetas.");
+        // Acceso fino en el controller via @PreAuthorize('GESTIONAR_RECETAS').
+        // Aqui solo bloqueamos a clientes por defensa adicional.
+        if (u.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no manejan recetas.");
         }
     }
 
