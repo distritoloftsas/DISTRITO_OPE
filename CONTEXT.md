@@ -83,6 +83,12 @@ público del pedido por QR).
 | 22c | **Reportes visuales con Recharts**: gráficas de barras, pie y línea de tendencia; bloque de verificación de cuadre en cierre; alertas de pedidos sin pago en ventas |
 | 23 | **Tipo de ciclo de lavadora (Sencillo 30 / Intermedio 36 / Deluxe 43)**: V15 + enum + columna en pedido; modal pide ciclo antes de la lavadora; countdown usa la duración del ciclo elegido |
 | 23b | **WhatsApp semiautomático**: helper `whatsappAvisar`, botón "WA" en cada card que abre `wa.me/<num>?text=<mensaje pre-armado>` según fase |
+| 24 | **Tests automáticos**: JUnit + Mockito sobre `PedidoService.cambiarEstado` (transiciones, pago previo, tipo ciclo obligatorio, observación al cancelar, sede ajena), Vitest sobre `whatsappAvisar`. **Bug encontrado y corregido por test**: la validación de tipo de ciclo ocurría DESPUÉS de asignar la máquina; ahora va antes. Comandos: `mvnw test -Dtest=...` y `npm test` |
+| 25 | **Recibo de pago imprimible** (modal con CSS print friendly tras cobrar) · **Alerta pedidos sin recoger** (banner + anillo ámbar a las 24h, alarmado a las 72h) · **Script de backup automático** `scripts/backup-db.ps1` con rotación de 30 archivos + `restaurar-db.ps1` + instrucciones para Task Scheduler |
+| 25b | **Apertura y cierre de turno + gastos de caja**: V16 (`turno_caja`, `gasto_caja`), `TurnoSection` con flujo abrir → registrar gasto → cerrar con cuadre. Calcula efectivo esperado = apertura + cobrado_efectivo − gastos. Diferencia se muestra en verde (cuadra) / rojo (falta) / ámbar (sobra) |
+| 26 | **Sistema de permisos por vista**: V17 (`usuario_permiso` + ENUM `permiso_usuario`), enum `Permiso` con 11 valores, `UsuarioPermisoRepository` JDBC, defaults sensatos por rol al crear empleado. `PermisosModal` con checkboxes solo accesible a SUPER_ADMIN. UI condicionada por `tienePermiso(usuario, X)`. EmpleadoPage eliminada — empleado y gerente ahora usan la misma `/gerente` y las pestañas se filtran por permisos. AdminPage gana pestaña Equipo con selector de sede |
+| 27 | **Backend blindado con permisos finos**: bean `PermisoChecker` evaluable desde `@PreAuthorize("@permisoChecker.tiene('X')")`; reemplaza `hasAnyRole` en endpoints sensibles (cierre/ventas/consumo, sede tolerancia, insumos, recetas, máquinas, clientes, equipo). Defensa en profundidad: tanto la UI como la API rechazan; el `BotonDescargarExcel` también se auto-oculta si falta `EXPORTAR_REPORTES`. SUPER_ADMIN siempre pasa por código |
+| 28 | **UX final**: sistema unificado de toasts (`lib/notify.ts` + `NotificationCenter`) con `notify.exito / .error / .info` (auto-dismiss), helper `mensajeDeError()`, modal de confirmación reusable `confirmar({...})` con Enter/Esc. Aplicado en hooks de mutación clave (pedidos, empleados, turnos) — los modales no necesitan código extra. `confirmarCerrarSesion` ahora usa el modal en vez de `window.confirm`. `GlobalExceptionHandler` mejorado: mensaje 500 incluye ClassName + msg; `AuthorizationDeniedException`/`AccessDeniedException` ahora devuelven 403 con mensaje claro |
 
 ## Migraciones Flyway aplicadas
 
@@ -101,6 +107,8 @@ público del pedido por QR).
 - V13: tabla `plan_consumo` + ENUM `fase_consumo`
 - V14: `plan.duracion_lavado/secado` ajustadas + `sede.tolerancia_pre/post_lavado_minutos`
 - V15: ENUM `tipo_ciclo_lavadora` + `pedido.tipo_ciclo_lavadora`
+- V16: tablas `turno_caja` (con índice único parcial: un solo turno abierto por empleado) + `gasto_caja`
+- V17: ENUM `permiso_usuario` (11 valores) + tabla `usuario_permiso(usuario_id, permiso)` + seed que asigna defaults a gerentes y empleados existentes
 
 ## Endpoints clave
 
@@ -164,6 +172,18 @@ público del pedido por QR).
 - `GET /api/clientes/conteo` → `{ total }`
 - `PATCH /api/clientes/{id}` y `POST /api/clientes/{id}/cuenta` (gerente/super)
 
+### Turno + gastos
+- `POST /api/turnos` → abrir turno con efectivo base
+- `GET /api/turnos/actual` → turno abierto del empleado (con cobrado en vivo + gastos + esperado)
+- `PATCH /api/turnos/{id}/cerrar` → calcula esperado y diferencia, persiste
+- `POST /api/turnos/{id}/gastos` → registra gasto del turno
+- `GET /api/turnos?sedeId=&desde=&hasta=` (gerente/super)
+
+### Empleados / Permisos
+- `PATCH /api/empleados/{id}/permisos` (solo SUPER_ADMIN) — `{ permisos: [...] }`
+- AuthMe (`/api/auth/me`) y `EmpleadoResponse` ahora exponen el set de permisos
+- `PATCH /api/clientes/{id}` y `POST /api/clientes/{id}/cuenta` (gerente/super)
+
 ## Reglas de negocio claves (acordadas)
 
 1. **Ciclo de lavado**: máx 10 kg por ciclo. **No se cobra por bolsas/kilos** sino
@@ -196,6 +216,22 @@ público del pedido por QR).
     costo actual del insumo en ese momento.
 13. **Super admin email** del bootstrap: `distritoloftsas@gmail.com`.
     Definido en `application.yml` (`distrito.setup.super-admin-email`).
+14. **Permisos por vista** (Sprint 26): cada usuario empleado/gerente tiene N
+    permisos del enum `Permiso`. SUPER_ADMIN siempre los tiene todos por
+    código. Solo SUPER_ADMIN puede asignar/quitar. Defaults al crear:
+    - GERENTE_SEDE: todos los permisos
+    - EMPLEADO: VER_OPERACION + VER_CLIENTES + VER_CIERRE_CAJA
+15. **Empleado y gerente comparten `/gerente`** (Sprint 26). El nav filtra
+    pestañas por permiso del usuario. Si una empleada no tiene VER_EQUIPO,
+    no ve la pestaña "Equipo". Backend `@PreAuthorize("@permisoChecker.tiene('X')")`
+    bloquea con 403 si llaman el endpoint igual.
+16. **Tipo de ciclo de lavadora vs tiempos del plan** (Sprint 23): el plan
+    sigue teniendo `duracionLavadoMinutos` como fallback, pero lo que manda
+    en el countdown es `pedido.tipoCicloLavadora` (SENCILLO 30, INTERMEDIO 36,
+    DELUXE 43) que elige la empleada al iniciar el lavado.
+17. **Turno de caja por empleado** (Sprint 25b): un solo turno abierto por
+    empleado a la vez (índice único parcial en DB). El cuadre al cerrar:
+    `esperado = apertura + sum(pagos EFECTIVO del empleado en el rango) − gastos`.
 
 ## Pitfalls técnicos conocidos (importante para no repetir)
 
@@ -227,8 +263,25 @@ Otros aprendizajes:
    401 o 403 sobre `/auth/me` para evitar bucles login↔rol cuando el token
    persistido en localStorage es viejo.
 7. **`replace_all: true` peligroso**: ojo cuando edites `@PreAuthorize` o
-   patrones repetidos en un mismo archivo. Pasó una vez que abrió accesos
-   no deseados al rol CLIENTE.
+   patrones repetidos en un mismo archivo. Pasó dos veces que abrió o
+   cerró accesos no deseados. Solución: usar constantes (`CIERRE_ROLES`,
+   `GESTION_ROLES`) en lugar de strings literales en cada anotación.
+8. **Los services NO deben rebloquear por rol si el controller ya filtra
+   con `@permisoChecker.tiene(...)`**. Pasó múltiples veces que un endpoint
+   abierto con permiso fallaba con 422 "Solo el gerente puede..." porque
+   el service hacía un check redundante de `rol == GERENTE_SEDE`. Patrón
+   correcto: el service solo bloquea CLIENTE (defensa en profundidad) y la
+   lógica de sede se evalúa por `actual.getRol() != SUPER_ADMIN ⇒ usar su
+   propia sede`. Aplicado en `InsumoService`, `MaquinaService`,
+   `PlanConsumoService`, `ReportesService`.
+9. **Spring Security 6 lanza `AuthorizationDeniedException`, no
+   `AccessDeniedException`.** Antes del Sprint 28 caía al handler de
+   `Exception` y devolvía 500. Ahora `GlobalExceptionHandler` mapea ambas
+   a 403 con mensaje claro.
+10. **Tests con Mockito y SpringSecurity**: para evitar `UnnecessaryStubbing`
+    use `@MockitoSettings(strictness = Strictness.LENIENT)`. Para test que
+    inyecta `PedidoService` use `ReflectionTestUtils.setField(service, "em", em)`
+    porque el `@PersistenceContext` no se mockea por defecto.
 
 ## Ambientes (Sprint 12)
 
@@ -317,10 +370,41 @@ docker compose up -d
 5. **Comentarios del cliente al pedido** (S).
 6. **Notificación push PWA al LISTO** (M) — sin proveedor externo.
 7. **Deploy real a QA** (M) — Railway/Neon/Vercel.
-8. **Tests automáticos** (M).
+8. **WhatsApp automático real** — reemplazar el wa.me semiautomático actual
+   cuando el dueño contrate proveedor (Twilio/Meta API). Ver memoria
+   `negocio_whatsapp.md` para diseño previsto.
+9. **Devoluciones / reembolsos** — flujo cuando el cliente reclama después
+   de un ENTREGADO.
+10. **Habeas data (Ley 1581)** — checkbox de aceptación en `/registro`
+    + política de tratamiento de datos.
+11. **Factura electrónica DIAN** — solo cuando se pase el umbral o un
+    cliente la exija.
+12. **Foto al recibir / al entregar** (opcional) — 2 fotos por pedido
+    en S3 para evitar disputas de "me dañaron la camisa".
+13. **Apertura/cierre de turno con Excel export** — el reporte de turnos
+    ya existe en la DB pero no hay XLSX todavía.
 
-Lista completa con ~40 ideas más en el resumen de la conversación. Si quiere
-otra cosa nueva, pídele recomendación al asistente con la nueva ronda de ideas.
+## Trucos de prueba útiles
+
+- **Resetear permisos de un usuario** a defaults (en psql):
+  ```sql
+  DELETE FROM usuario_permiso WHERE usuario_id = X;
+  -- después relogin para que AuthMe los reasigne (NO, los defaults solo
+  -- se aplican al CREAR el usuario, así que toca insertar a mano o usar
+  -- el modal de permisos como super admin)
+  ```
+- **Forzar a un empleado a estar sin permisos** para probar 403:
+  marca todos los checks vacíos en el modal de permisos. El back devuelve
+  "No tienes permiso para esta acción".
+- **Reproducir el flujo completo** después de un reset:
+  1. `POST /api/auth/setup` con email + password del super admin
+  2. Crear sede (POST /sedes) — automáticamente crea 3+3 máquinas
+  3. Crear gerente (POST /empleados con rol GERENTE_SEDE) → recibe
+     todos los permisos por default
+  4. Logear como gerente → crear empleado → ese recibe los 3 permisos
+     básicos por default
+  5. Como super admin desde /admin → Equipo → ajustar permisos del
+     empleado según lo que necesite
 
 ## Convenciones del proyecto (lo que el dueño espera)
 
@@ -338,11 +422,46 @@ otra cosa nueva, pídele recomendación al asistente con la nueva ronda de ideas
 - Co-author en commits: omitido en este repo (el usuario commitea
   manualmente la mayoría).
 
-## Estado del último commit en develop
+## Estado actual de develop (al cierre de esta sesión)
 
-A la fecha del último mensaje antes de compactar: **Sprint 18** (trazabilidad,
-CPP, historial e informe de consumo) está listo en código **pero no
-commiteado**. El último commit pusheado fue `724516f` con
-"Sprint 16+17: inventario de insumos + receta de consumo por plan".
+Último commit pusheado: **`3dfc766`** "Fix: AccessDenied → 403 (no 500)".
 
-Hay que hacer commit del Sprint 18 cuando se retome.
+Todo lo que sigue YA está commiteado y en `origin/develop`:
+
+- Sprint 18 → 28 completos
+- 17 migraciones Flyway (V1 → V17)
+- 8 tests backend verde + 9 tests frontend verde (`./mvnw.cmd test` y `npm test`)
+- Backend compila limpio (`./mvnw.cmd -DskipTests clean compile` → BUILD SUCCESS)
+- Frontend tipo-checked (`npx tsc --noEmit` → EXIT 0)
+- Backend y frontend levantando OK con `docker compose up -d` + `mvnw spring-boot:run` + `npm run dev`
+
+## Pendientes inmediatos (nada bloqueante)
+
+1. **Tag `v2.0.0`** en main cuando se merguee — incluye permisos por
+   vista, turnos, recibo, WhatsApp y backups. Importante porque marca
+   el inicio del modelo de seguridad nuevo.
+2. **Migración para limpiar `plan_consumo` viejo** si se decide quitar
+   la receta. Actualmente está activa.
+3. **Probar end-to-end** desde un usuario con permisos parciales para
+   confirmar que los 403 llegan con mensaje legible al frontend (toast
+   rojo).
+4. **Si un empleado nuevo no tiene permisos** (creado antes de V17 que
+   por algún motivo no recibió el seed): el super admin entra a
+   `/admin → Equipo → click Permisos sobre la fila → marca lo que
+   necesite → Guardar`. El backend ahora responde 403 con mensaje
+   claro cuando falta uno.
+
+## Convenciones de respuesta del asistente en futuras sesiones
+
+- Tono breve, español sin emojis (mantener estilo histórico).
+- Cada sprint = un commit con prefijo `Sprint NN: ...` o un mensaje
+  descriptivo si es fix.
+- Antes de cambios pesados o decisiones de negocio, **preguntar con
+  `AskUserQuestion`** ofreciendo recomendación.
+- Después de cada sprint, **mostrar resumen** + **comandos para probar**
+  + **preguntar siguiente paso**.
+- Si hay cambios destructivos en git (push, reset, etc.), **confirmar**.
+- En git, NO usar `--no-verify`, NO force-push a main, los warnings
+  de LF/CRLF son normales en Windows.
+- Co-author en commits: omitido en este repo (el usuario commitea
+  manualmente la mayoría).
