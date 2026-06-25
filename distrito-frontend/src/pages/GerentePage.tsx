@@ -61,7 +61,8 @@ export function GerentePage() {
           <div>
             <p className="text-sm font-medium leading-none">Distrito Loft</p>
             <p className="text-xs text-distrito-gold mt-1">
-              Gerencia de sede{usuario.sedeNombre ? ` · ${usuario.sedeNombre}` : ""}
+              {usuario.rol === "GERENTE_SEDE" ? "Gerencia" : "Operación"}
+              {usuario.sedeNombre ? ` · ${usuario.sedeNombre}` : ""}
             </p>
           </div>
         </div>

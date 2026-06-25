@@ -31,8 +31,8 @@ export function rutaInicialPorRol(rol: RolUsuario): string {
     case "CLIENTE":
       return "/cliente";
     case "EMPLEADO":
-      return "/empleado";
     case "GERENTE_SEDE":
+      // Operacion unificada: la nav se filtra por permisos del usuario
       return "/gerente";
     case "SUPER_ADMIN":
       return "/admin";
