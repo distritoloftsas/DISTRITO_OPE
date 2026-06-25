@@ -49,8 +49,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex, HttpServletRequest req) {
         log.error("Error no manejado en {}", req.getRequestURI(), ex);
+        // Incluimos tipo de excepcion y mensaje para diagnosticar mas rapido
+        // en QA sin tener que ir al log. No exponemos stack trace.
+        String mensaje = ex.getClass().getSimpleName()
+                + (ex.getMessage() != null ? ": " + ex.getMessage() : "");
         return ResponseEntity.internalServerError().body(
-                ErrorResponse.of(500, "Internal Server Error", "Ocurrio un error inesperado", req.getRequestURI())
+                ErrorResponse.of(500, "Internal Server Error", mensaje, req.getRequestURI())
         );
     }
 }
