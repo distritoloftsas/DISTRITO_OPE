@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { etiquetaRol } from "../types/auth";
+import { etiquetaRol, tienePermiso } from "../types/auth";
+import type { Permiso } from "../types/permiso";
 import { confirmarCerrarSesion } from "../lib/confirmarSalir";
 import { usePageTitle } from "../lib/usePageTitle";
 import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
@@ -25,13 +26,13 @@ import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 type Vista = "operacion" | "clientes" | "equipo" | "inventario" | "maquinas" | "reportes";
 
-const VISTAS: { id: Vista; label: string }[] = [
-  { id: "operacion", label: "Operación" },
-  { id: "clientes", label: "Clientes" },
-  { id: "equipo", label: "Equipo" },
-  { id: "inventario", label: "Inventario" },
-  { id: "maquinas", label: "Máquinas" },
-  { id: "reportes", label: "Reportes" },
+const VISTAS: { id: Vista; label: string; permiso: Permiso }[] = [
+  { id: "operacion", label: "Operación", permiso: "VER_OPERACION" },
+  { id: "clientes", label: "Clientes", permiso: "VER_CLIENTES" },
+  { id: "equipo", label: "Equipo", permiso: "VER_EQUIPO" },
+  { id: "inventario", label: "Inventario", permiso: "VER_INVENTARIO" },
+  { id: "maquinas", label: "Máquinas", permiso: "GESTIONAR_MAQUINAS" },
+  { id: "reportes", label: "Reportes", permiso: "VER_CIERRE_CAJA" },
 ];
 
 export function GerentePage() {
@@ -80,7 +81,7 @@ export function GerentePage() {
 
       <nav className="bg-white border-b border-stone-200 px-6 sticky top-0 z-30">
         <div className="flex gap-1 overflow-x-auto">
-          {VISTAS.map((v) => (
+          {VISTAS.filter((v) => tienePermiso(usuario, v.permiso)).map((v) => (
             <NavTab key={v.id} active={vista === v.id} onClick={() => setVista(v.id)}>
               {v.label}
             </NavTab>
@@ -192,9 +193,11 @@ export function GerentePage() {
 
             <InsumosTabla />
 
-            <div className="mt-8">
-              <RecetaPlanSection />
-            </div>
+            {tienePermiso(usuario, "GESTIONAR_RECETAS") && (
+              <div className="mt-8">
+                <RecetaPlanSection />
+              </div>
+            )}
           </>
         )}
 
@@ -204,15 +207,15 @@ export function GerentePage() {
               <h2 className="text-base font-medium mb-4">Mantenimiento de máquinas</h2>
               <MantenimientoMaquinas />
             </div>
-            <ToleranciaSection />
+            {tienePermiso(usuario, "GESTIONAR_TOLERANCIA") && <ToleranciaSection />}
           </div>
         )}
 
         {vista === "reportes" && (
           <div className="space-y-8">
-            <CierreCajaSection />
-            <VentasSection />
-            <ConsumoInsumosSection />
+            {tienePermiso(usuario, "VER_CIERRE_CAJA") && <CierreCajaSection />}
+            {tienePermiso(usuario, "VER_REPORTES_VENTAS") && <VentasSection />}
+            {tienePermiso(usuario, "VER_REPORTES_INSUMOS") && <ConsumoInsumosSection />}
           </div>
         )}
       </main>

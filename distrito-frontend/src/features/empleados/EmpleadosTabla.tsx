@@ -1,9 +1,20 @@
+import { useState } from "react";
 import { useEmpleados, useCambiarActivoEmpleado } from "./useEmpleados";
+import { useAuthStore } from "../../store/authStore";
 import { etiquetaRol } from "../../types/auth";
+import { PermisosModal } from "./PermisosModal";
+import type { EmpleadoResponse } from "../../types/empleado";
 
-export function EmpleadosTabla() {
-  const { data, isLoading, isError } = useEmpleados();
+interface Props {
+  sedeId?: number;
+}
+
+export function EmpleadosTabla({ sedeId }: Props = {}) {
+  const { data, isLoading, isError } = useEmpleados(sedeId);
   const cambiar = useCambiarActivoEmpleado();
+  const usuario = useAuthStore((s) => s.usuario);
+  const esSuperAdmin = usuario?.rol === "SUPER_ADMIN";
+  const [permisosEditar, setPermisosEditar] = useState<EmpleadoResponse | null>(null);
 
   if (isLoading) return <p className="text-sm text-stone-500">Cargando empleados...</p>;
   if (isError) return <p className="text-sm text-red-600">No se pudieron cargar los empleados.</p>;
@@ -57,7 +68,15 @@ export function EmpleadosTabla() {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2 text-right">
+              <td className="px-4 py-2 text-right space-x-1">
+                {esSuperAdmin && (
+                  <button
+                    onClick={() => setPermisosEditar(e)}
+                    className="text-xs px-2 py-1 rounded border border-distrito-gold-dark text-distrito-black"
+                  >
+                    Permisos ({e.permisos?.length ?? 0})
+                  </button>
+                )}
                 <button
                   onClick={() => cambiar.mutate({ id: e.id, activo: !e.activo })}
                   disabled={cambiar.isPending}
@@ -74,6 +93,13 @@ export function EmpleadosTabla() {
           ))}
         </tbody>
       </table>
+
+      {permisosEditar && (
+        <PermisosModal
+          empleado={permisosEditar}
+          onClose={() => setPermisosEditar(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
-import { etiquetaRol } from "../types/auth";
+import { etiquetaRol, tienePermiso } from "../types/auth";
 import { confirmarCerrarSesion } from "../lib/confirmarSalir";
 import { usePageTitle } from "../lib/usePageTitle";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
@@ -53,7 +53,7 @@ export function EmpleadoPage() {
 
       <main className="flex-1 p-6">
         <TurnoSection />
-        <AlertaStockBajo />
+        {tienePermiso(usuario, "VER_INVENTARIO") && <AlertaStockBajo />}
         <AlertaSinRecoger />
 
         <div className="flex items-center justify-between mb-4">
@@ -93,9 +93,11 @@ export function EmpleadoPage() {
 
         <KanbanBoard estados={tab === "activos" ? ESTADOS_KANBAN : ESTADOS_CERRADOS} />
 
-        <div className="mt-10">
-          <CierreCajaSection titulo="Cierre de caja del día" />
-        </div>
+        {tienePermiso(usuario, "VER_CIERRE_CAJA") && (
+          <div className="mt-10">
+            <CierreCajaSection titulo="Cierre de caja del día" />
+          </div>
+        )}
       </main>
 
       {mostrarNuevo && (

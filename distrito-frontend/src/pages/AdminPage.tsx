@@ -10,6 +10,7 @@ import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
+import { EmpleadosTabla } from "../features/empleados/EmpleadosTabla";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -17,11 +18,12 @@ const formatoCOP = new Intl.NumberFormat("es-CO", {
   maximumFractionDigits: 0,
 });
 
-type Vista = "sedes" | "clientes" | "reportes";
+type Vista = "sedes" | "clientes" | "equipo" | "reportes";
 
 const VISTAS: { id: Vista; label: string }[] = [
   { id: "sedes", label: "Sedes" },
   { id: "clientes", label: "Clientes" },
+  { id: "equipo", label: "Equipo" },
   { id: "reportes", label: "Reportes" },
 ];
 
@@ -204,6 +206,29 @@ export function AdminPage() {
           <>
             <h2 className="text-base font-medium mb-4">Clientes (todas las sedes)</h2>
             <ClientesTabla />
+          </>
+        )}
+
+        {vista === "equipo" && (
+          <>
+            <div className="bg-white border border-stone-200 rounded-xl p-4 mb-4 flex items-center gap-3 flex-wrap">
+              <label className="text-xs text-stone-600">Sede:</label>
+              <select
+                value={sedeReportesId ?? ""}
+                onChange={(e) => setSedeReportesId(Number(e.target.value))}
+                className="text-sm px-3 py-2 border border-stone-300 rounded-lg bg-white"
+              >
+                {sedes.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre} — {s.ciudad}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-stone-500">
+                Asigna o quita permisos a cada empleado/gerente desde aquí.
+              </p>
+            </div>
+            {sedeReportesId && <EmpleadosTabla sedeId={sedeReportesId} />}
           </>
         )}
 

@@ -3,11 +3,13 @@ import { api } from "../../lib/api";
 import type { EmpleadoResponse } from "../../types/empleado";
 import type { RolUsuario } from "../../types/auth";
 
-export function useEmpleados() {
+export function useEmpleados(sedeId?: number) {
   return useQuery({
-    queryKey: ["empleados"],
+    queryKey: ["empleados", sedeId ?? "mia"],
     queryFn: async () => {
-      const { data } = await api.get<EmpleadoResponse[]>("/empleados");
+      const { data } = await api.get<EmpleadoResponse[]>("/empleados", {
+        params: sedeId ? { sedeId } : undefined,
+      });
       return data;
     },
   });
@@ -39,6 +41,22 @@ export function useCambiarActivoEmpleado() {
   return useMutation({
     mutationFn: async ({ id, activo }: { id: number; activo: boolean }) => {
       const { data } = await api.patch<EmpleadoResponse>(`/empleados/${id}/activo`, { activo });
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["empleados"] }),
+  });
+}
+
+import type { Permiso } from "../../types/permiso";
+
+export function useActualizarPermisos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, permisos }: { id: number; permisos: Permiso[] }) => {
+      const { data } = await api.patch<EmpleadoResponse>(
+        `/empleados/${id}/permisos`,
+        { permisos }
+      );
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["empleados"] }),

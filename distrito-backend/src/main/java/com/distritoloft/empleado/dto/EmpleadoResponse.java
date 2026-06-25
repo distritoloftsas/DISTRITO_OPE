@@ -1,9 +1,11 @@
 package com.distritoloft.empleado.dto;
 
+import com.distritoloft.common.enums.Permiso;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.usuario.Usuario;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 
 public record EmpleadoResponse(
         Long id,
@@ -16,11 +18,12 @@ public record EmpleadoResponse(
         SedeResumen sede,
         String cargo,
         OffsetDateTime ultimoLogin,
-        OffsetDateTime creadoEn
+        OffsetDateTime creadoEn,
+        Set<Permiso> permisos
 ) {
     public record SedeResumen(Long id, String nombre) {}
 
-    public static EmpleadoResponse from(Usuario u) {
+    public static EmpleadoResponse from(Usuario u, Set<Permiso> permisos) {
         SedeResumen sede = null;
         String cargo = null;
         if (u.getEmpleadoPerfil() != null && u.getEmpleadoPerfil().getSede() != null) {
@@ -41,7 +44,8 @@ public record EmpleadoResponse(
                 sede,
                 cargo,
                 u.getUltimoLogin(),
-                u.getCreadoEn()
+                u.getCreadoEn(),
+                permisos != null ? permisos : Set.of()
         );
     }
 }

@@ -1,6 +1,7 @@
 package com.distritoloft.empleado;
 
 import com.distritoloft.auth.CustomUserDetails;
+import com.distritoloft.common.enums.Permiso;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
@@ -10,6 +11,7 @@ import com.distritoloft.sede.Sede;
 import com.distritoloft.sede.SedeRepository;
 import com.distritoloft.usuario.EmpleadoPerfil;
 import com.distritoloft.usuario.Usuario;
+import com.distritoloft.usuario.UsuarioPermisoRepository;
 import com.distritoloft.usuario.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class EmpleadoService {
     private final UsuarioRepository usuarioRepository;
     private final SedeRepository sedeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UsuarioPermisoRepository permisoRepository;
 
     @Transactional
     public EmpleadoResponse crear(CustomUserDetails principal, CrearEmpleadoRequest req) {
@@ -72,7 +76,29 @@ public class EmpleadoService {
         usuario.setEmpleadoPerfil(perfil);
 
         Usuario guardado = usuarioRepository.save(usuario);
-        return EmpleadoResponse.from(guardado);
+
+        Set<Permiso> defaults = req.rol() == RolUsuario.GERENTE_SEDE
+                ? Permiso.DEFAULTS_GERENTE
+                : Permiso.DEFAULTS_EMPLEADO;
+        permisoRepository.reemplazar(guardado.getId(), defaults);
+
+        return EmpleadoResponse.from(guardado, defaults);
+    }
+
+    @Transactional
+    public EmpleadoResponse actualizarPermisos(CustomUserDetails principal, Long empleadoId, Set<Permiso> permisos) {
+        Usuario quienCambia = cargarUsuarioActual(principal);
+        if (quienCambia.getRol() != RolUsuario.SUPER_ADMIN) {
+            throw new ReglaNegocioException("Solo el super admin puede modificar permisos.");
+        }
+        Usuario objetivo = usuarioRepository.findById(empleadoId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Empleado no encontrado: " + empleadoId));
+        if (objetivo.getRol() != RolUsuario.EMPLEADO
+                && objetivo.getRol() != RolUsuario.GERENTE_SEDE) {
+            throw new ReglaNegocioException("Solo se pueden modificar permisos de empleados y gerentes.");
+        }
+        permisoRepository.reemplazar(empleadoId, permisos);
+        return EmpleadoResponse.from(objetivo, permisos);
     }
 
     @Transactional(readOnly = true)
@@ -91,7 +117,9 @@ public class EmpleadoService {
         return usuarioRepository.listarEmpleados(
                 List.of(RolUsuario.EMPLEADO, RolUsuario.GERENTE_SEDE),
                 sedeId
-        ).stream().map(EmpleadoResponse::from).toList();
+        ).stream()
+                .map(u -> EmpleadoResponse.from(u, permisoRepository.findByUsuarioId(u.getId())))
+                .toList();
     }
 
     @Transactional
@@ -127,7 +155,7 @@ public class EmpleadoService {
         }
 
         objetivo.setActivo(activo);
-        return EmpleadoResponse.from(objetivo);
+        return EmpleadoResponse.from(objetivo, permisoRepository.findByUsuarioId(objetivo.getId()));
     }
 
     private Long resolverSedeDestino(Usuario quienCrea, Long sedeIdRequest) {

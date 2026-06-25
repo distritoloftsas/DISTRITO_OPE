@@ -1,4 +1,5 @@
 import type { RolUsuario } from "./auth";
+import type { Permiso } from "./permiso";
 
 export interface EmpleadoResponse {
   id: number;
@@ -12,4 +13,5 @@ export interface EmpleadoResponse {
   cargo: string | null;
   ultimoLogin: string | null;
   creadoEn: string;
+  permisos: Permiso[];
 }
