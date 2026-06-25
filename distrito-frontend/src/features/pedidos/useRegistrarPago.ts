@@ -9,12 +9,22 @@ interface Payload {
   referencia?: string;
 }
 
+export interface PagoResponse {
+  id: number;
+  pedidoId: number;
+  metodo: MetodoPago;
+  monto: number;
+  referencia: string | null;
+  fecha: string;
+  empleadoNombre: string | null;
+}
+
 export function useRegistrarPago() {
   const qc = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ pedidoId, metodo, monto, referencia }: Payload) => {
-      const { data } = await api.post(`/pedidos/${pedidoId}/pagos`, {
+      const { data } = await api.post<PagoResponse>(`/pedidos/${pedidoId}/pagos`, {
         metodo,
         monto,
         referencia,

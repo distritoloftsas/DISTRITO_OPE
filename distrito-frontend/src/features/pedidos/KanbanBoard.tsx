@@ -219,8 +219,26 @@ function PedidoCard({
       ? pedido.secadora
       : null;
 
+  const horasDesdeActualizacion =
+    (Date.now() - new Date(pedido.fechaRecepcion).getTime()) / 3_600_000;
+  const sinRecogerHaceMucho =
+    pedido.estado === "LISTO" && horasDesdeActualizacion >= 72;
+  const sinRecoger24h =
+    pedido.estado === "LISTO" && !sinRecogerHaceMucho && horasDesdeActualizacion >= 24;
+
+  const extra = sinRecogerHaceMucho
+    ? "ring-2 ring-amber-500 ring-offset-1"
+    : sinRecoger24h
+    ? "ring-1 ring-amber-300"
+    : "";
+
   return (
-    <div className={`border rounded-lg p-2.5 mb-2 ${colorClasses}`}>
+    <div className={`border rounded-lg p-2.5 mb-2 ${colorClasses} ${extra}`}>
+      {sinRecogerHaceMucho && (
+        <p className="text-[10px] text-amber-900 bg-amber-100 -m-2.5 mb-2 px-2 py-1 rounded-t-md font-medium">
+          ⚠ Sin recoger hace +{Math.floor(horasDesdeActualizacion / 24)}d
+        </p>
+      )}
       <div className="flex justify-between items-start mb-1">
         <button
           onClick={onVer}

@@ -16,6 +16,7 @@ import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { InsumosTabla } from "../features/insumos/InsumosTabla";
 import { NuevoInsumoModal } from "../features/insumos/NuevoInsumoModal";
 import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
+import { AlertaSinRecoger } from "../features/pedidos/AlertaSinRecoger";
 import { RecetaPlanSection } from "../features/planes/RecetaPlanSection";
 import { ToleranciaSection } from "../features/sede/ToleranciaSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
@@ -90,6 +91,7 @@ export function GerentePage() {
         {vista === "operacion" && (
           <>
             <AlertaStockBajo />
+            <AlertaSinRecoger />
 
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-medium">Tablero de pedidos</h2>
