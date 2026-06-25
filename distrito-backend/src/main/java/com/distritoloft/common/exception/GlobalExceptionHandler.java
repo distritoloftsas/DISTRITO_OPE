@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,6 +45,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest req) {
         return ResponseEntity.badRequest().body(
                 ErrorResponse.of(400, "Bad Request", ex.getMessage(), req.getRequestURI())
+        );
+    }
+
+    /**
+     * Spring Security 6 lanza AuthorizationDeniedException cuando un
+     * @PreAuthorize/@permisoChecker bloquea la llamada. Antes esto caia
+     * en el handler de Exception y devolvia 500 con mensaje generico.
+     */
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleAccessDenied(Exception ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ErrorResponse.of(403, "Forbidden",
+                        "No tienes permiso para esta acción. Pídele al administrador que te lo asigne.",
+                        req.getRequestURI())
         );
     }
 
