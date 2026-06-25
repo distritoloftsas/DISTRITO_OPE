@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
+import { notify, mensajeDeError } from "../../lib/notify";
 import type { EmpleadoResponse } from "../../types/empleado";
 import type { RolUsuario } from "../../types/auth";
 
@@ -32,7 +33,11 @@ export function useCrearEmpleado() {
       const { data } = await api.post<EmpleadoResponse>("/empleados", payload);
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["empleados"] }),
+    onSuccess: (e) => {
+      qc.invalidateQueries({ queryKey: ["empleados"] });
+      notify.exito(`${e.nombre} creado. Entrégale su contraseña inicial.`, "Empleado registrado");
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudo crear el empleado.")),
   });
 }
 
@@ -43,7 +48,11 @@ export function useCambiarActivoEmpleado() {
       const { data } = await api.patch<EmpleadoResponse>(`/empleados/${id}/activo`, { activo });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["empleados"] }),
+    onSuccess: (e) => {
+      qc.invalidateQueries({ queryKey: ["empleados"] });
+      notify.exito(`${e.nombre} ${e.activo ? "reactivado" : "desactivado"}.`);
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudo cambiar el estado.")),
   });
 }
 
@@ -59,6 +68,10 @@ export function useActualizarPermisos() {
       );
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["empleados"] }),
+    onSuccess: (e) => {
+      qc.invalidateQueries({ queryKey: ["empleados"] });
+      notify.exito(`Permisos de ${e.nombre} actualizados.`);
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudieron guardar los permisos.")),
   });
 }

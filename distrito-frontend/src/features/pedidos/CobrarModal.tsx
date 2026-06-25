@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRegistrarPago, type PagoResponse } from "./useRegistrarPago";
 import { useEscape } from "../../lib/useEscape";
+import { notify, mensajeDeError } from "../../lib/notify";
 import { ReciboPagoModal } from "./ReciboPagoModal";
 import type { MetodoPago, PedidoResponse } from "../../types/pedido";
 
@@ -37,9 +38,10 @@ export function CobrarModal({ pedido, onClose, onCobrado }: Props) {
         monto: pedido.total,
         referencia: referencia || undefined,
       });
+      notify.exito(`Cobro de $${pedido.total.toLocaleString("es-CO")} registrado.`, "Pago recibido");
       setReciboGenerado(pago);
-    } catch {
-      // mostrado abajo
+    } catch (err) {
+      notify.error(mensajeDeError(err, "No se pudo registrar el pago."));
     }
   };
 

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { EstadoPedido, PedidoResponse, TipoCicloLavadora } from "../../types/pedido";
+import { notify, mensajeDeError } from "../../lib/notify";
+import { etiquetaEstado, type EstadoPedido, type PedidoResponse, type TipoCicloLavadora } from "../../types/pedido";
 
 interface Payload {
   pedidoId: number;
@@ -29,9 +30,16 @@ export function useCambiarEstado() {
       });
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (pedido) => {
       qc.invalidateQueries({ queryKey: ["pedidos"] });
       qc.invalidateQueries({ queryKey: ["maquinas"] });
+      notify.exito(
+        `${pedido.codigoQr} ahora está en ${etiquetaEstado(pedido.estado)}.`,
+        "Estado actualizado"
+      );
+    },
+    onError: (err) => {
+      notify.error(mensajeDeError(err, "No se pudo cambiar el estado del pedido."));
     },
   });
 }

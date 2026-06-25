@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
+import { notify, mensajeDeError } from "../../lib/notify";
 import type { PedidoResponse } from "../../types/pedido";
 
 interface CrearPedidoPayload {
@@ -17,8 +18,12 @@ export function useCrearPedido() {
       const { data } = await api.post<PedidoResponse>("/pedidos", payload);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (pedido) => {
       queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      notify.exito(`Pedido ${pedido.codigoQr} creado.`, "Pedido registrado");
+    },
+    onError: (err) => {
+      notify.error(mensajeDeError(err, "No se pudo crear el pedido."));
     },
   });
 }

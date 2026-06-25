@@ -8,6 +8,7 @@ import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
 import { RegistroClientePage } from "./pages/RegistroClientePage";
 import { SeguimientoPublicoPage } from "./pages/SeguimientoPublicoPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { useAuthStore } from "./store/authStore";
 import { rutaInicialPorRol } from "./types/auth";
 
@@ -22,6 +23,7 @@ function Home() {
 function App() {
   return (
     <BrowserRouter>
+      <NotificationCenter />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />

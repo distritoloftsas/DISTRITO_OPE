@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
+import { notify, mensajeDeError } from "../../lib/notify";
 
 export interface GastoResponse {
   id: number;
@@ -48,7 +49,11 @@ export function useAbrirTurno() {
       const { data } = await api.post<TurnoResponse>("/turnos", { efectivoApertura });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["turno"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["turno"] });
+      notify.exito("Turno abierto. ¡Buena jornada!");
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudo abrir el turno.")),
   });
 }
 
@@ -66,7 +71,14 @@ export function useCerrarTurno() {
       });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["turno"] }),
+    onSuccess: (t) => {
+      qc.invalidateQueries({ queryKey: ["turno"] });
+      const dif = Number(t.diferencia ?? 0);
+      if (Math.abs(dif) < 1) notify.exito("Turno cerrado. La caja cuadra.");
+      else if (dif < 0) notify.error(`Turno cerrado con faltante de $${Math.abs(dif).toLocaleString("es-CO")}.`);
+      else notify.info(`Turno cerrado con sobrante de $${dif.toLocaleString("es-CO")}.`);
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudo cerrar el turno.")),
   });
 }
 
@@ -80,6 +92,10 @@ export function useRegistrarGasto() {
       });
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["turno"] }),
+    onSuccess: (g) => {
+      qc.invalidateQueries({ queryKey: ["turno"] });
+      notify.exito(`Gasto registrado: ${g.concepto} - $${g.monto.toLocaleString("es-CO")}.`);
+    },
+    onError: (err) => notify.error(mensajeDeError(err, "No se pudo registrar el gasto.")),
   });
 }

@@ -19,6 +19,21 @@ body {
   font-family: var(--font-sans);
 }
 
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 200ms ease-out;
+}
+
 /* Impresion: solo se imprime el ticket. */
 @media print {
   body * {
