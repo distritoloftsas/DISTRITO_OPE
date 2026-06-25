@@ -9,14 +9,12 @@ import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
-import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
 import { InsumosTabla } from "../features/insumos/InsumosTabla";
 import { NuevoInsumoModal } from "../features/insumos/NuevoInsumoModal";
 import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
-import { RecetaPlanSection } from "../features/planes/RecetaPlanSection";
 import { ToleranciaSection } from "../features/sede/ToleranciaSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
@@ -187,10 +185,6 @@ export function GerentePage() {
             )}
 
             <InsumosTabla />
-
-            <div className="mt-8">
-              <RecetaPlanSection />
-            </div>
           </>
         )}
 
@@ -208,7 +202,6 @@ export function GerentePage() {
           <div className="space-y-8">
             <CierreCajaSection />
             <VentasSection />
-            <ConsumoInsumosSection />
           </div>
         )}
       </main>
