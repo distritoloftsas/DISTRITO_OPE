@@ -3,6 +3,7 @@ import { usePedidos } from "./usePedidos";
 import { useCambiarEstado } from "./useCambiarEstado";
 import { CobrarModal } from "./CobrarModal";
 import { CancelarModal } from "./CancelarModal";
+import { abrirWhatsapp } from "./whatsappAvisar";
 import { ElegirMaquinaModal } from "./ElegirMaquinaModal";
 import { HistorialPedidoModal } from "./HistorialPedidoModal";
 import { TicketPedidoModal } from "./TicketPedidoModal";
@@ -268,6 +269,16 @@ function PedidoCard({
             title={bloqueadoPorPago ? "Falta cobrar el pedido" : undefined}
           >
             Avanzar →
+          </button>
+        )}
+
+        {pedido.cliente.telefono && (
+          <button
+            onClick={() => abrirWhatsapp(pedido)}
+            className="text-[10px] py-1 px-2 text-green-700 border border-green-400 rounded bg-white"
+            title="Avisar por WhatsApp"
+          >
+            WA
           </button>
         )}
 

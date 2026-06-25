@@ -1,6 +1,7 @@
 package com.distritoloft.pedido;
 
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.common.enums.TipoCicloLavadora;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.sede.Sede;
@@ -72,6 +73,11 @@ public class Pedido {
 
     @Column(name = "fecha_inicio_secado")
     private OffsetDateTime fechaInicioSecado;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(name = "tipo_ciclo_lavadora", columnDefinition = "tipo_ciclo_lavadora")
+    private TipoCicloLavadora tipoCicloLavadora;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "creado_por_empleado_id")

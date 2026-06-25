@@ -1,6 +1,7 @@
 package com.distritoloft.pedido.dto;
 
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.common.enums.TipoCicloLavadora;
 import com.distritoloft.common.enums.TipoMaquina;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.pedido.Pedido;
@@ -24,7 +25,9 @@ public record PedidoResponse(
         OffsetDateTime fechaInicioLavado,
         OffsetDateTime fechaInicioSecado,
         MaquinaResumen lavadora,
-        MaquinaResumen secadora
+        MaquinaResumen secadora,
+        TipoCicloLavadora tipoCicloLavadora,
+        Integer duracionLavadoCicloMinutos
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
     public record SedeResumen(
@@ -74,7 +77,9 @@ public record PedidoResponse(
                 p.getFechaInicioLavado(),
                 p.getFechaInicioSecado(),
                 resumen(p.getLavadora()),
-                resumen(p.getSecadora())
+                resumen(p.getSecadora()),
+                p.getTipoCicloLavadora(),
+                p.getTipoCicloLavadora() != null ? p.getTipoCicloLavadora().getDuracionMinutos() : null
         );
     }
 

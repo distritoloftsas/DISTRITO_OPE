@@ -178,6 +178,14 @@ public class PedidoService {
 
         gestionarMaquinas(pedido, actual, nuevo, req.maquinaId());
 
+        // Al entrar a LAVANDO la empleada debe elegir el tipo de ciclo (Sencillo/Intermedio/Deluxe).
+        if (actual == EstadoPedido.RECIBIDO && nuevo == EstadoPedido.LAVANDO) {
+            if (req.tipoCicloLavadora() == null) {
+                throw new ReglaNegocioException("Debe indicar el tipo de ciclo de la lavadora.");
+            }
+            pedido.setTipoCicloLavadora(req.tipoCicloLavadora());
+        }
+
         // Descontar insumos del plan ANTES de cambiar estado, para que si falla por
         // stock insuficiente no haya efectos parciales.
         if (actual == EstadoPedido.RECIBIDO && nuevo == EstadoPedido.LAVANDO) {

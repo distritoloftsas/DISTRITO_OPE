@@ -13,6 +13,7 @@ export function CicloCountdown({ pedido, className }: Props) {
     pedido.fechaInicioSecado,
     pedido.plan.duracionLavadoMinutos,
     pedido.plan.duracionSecadoMinutos,
+    pedido.duracionLavadoCicloMinutos,
     pedido.sede.toleranciaPreLavadoMinutos,
     pedido.sede.toleranciaPostLavadoMinutos,
   ]);
@@ -66,10 +67,12 @@ function restanteCiclo(p: PedidoResponse): CicloInfo | null {
   const tolPre = (p.sede.toleranciaPreLavadoMinutos ?? 0) * 60_000;
   const tolPost = (p.sede.toleranciaPostLavadoMinutos ?? 0) * 60_000;
   if (p.estado === "LAVANDO" && p.fechaInicioLavado) {
+    // Si la empleada eligio un ciclo, usamos esa duracion. Si no, el default del plan.
+    const lavadoMin = p.duracionLavadoCicloMinutos ?? p.plan.duracionLavadoMinutos;
     return {
       etapa: "lavado",
       inicioMs: new Date(p.fechaInicioLavado).getTime(),
-      duracionMs: p.plan.duracionLavadoMinutos * 60_000 + tolPre,
+      duracionMs: lavadoMin * 60_000 + tolPre,
     };
   }
   if (p.estado === "SECANDO" && p.fechaInicioSecado) {

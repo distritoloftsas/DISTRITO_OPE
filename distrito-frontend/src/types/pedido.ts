@@ -9,6 +9,20 @@ export type EstadoPedido =
 
 export type MetodoPago = "EFECTIVO" | "TRANSFERENCIA" | "DATAFONO";
 
+export type TipoCicloLavadora = "SENCILLO" | "INTERMEDIO" | "DELUXE";
+
+export const DURACION_CICLO: Record<TipoCicloLavadora, number> = {
+  SENCILLO: 30,
+  INTERMEDIO: 36,
+  DELUXE: 43,
+};
+
+export const ETIQUETA_CICLO: Record<TipoCicloLavadora, string> = {
+  SENCILLO: "Sencillo",
+  INTERMEDIO: "Intermedio",
+  DELUXE: "Deluxe",
+};
+
 export interface PedidoResponse {
   id: number;
   codigoQr: string;
@@ -39,6 +53,8 @@ export interface PedidoResponse {
   fechaInicioSecado: string | null;
   lavadora: MaquinaRefResumen | null;
   secadora: MaquinaRefResumen | null;
+  tipoCicloLavadora?: TipoCicloLavadora | null;
+  duracionLavadoCicloMinutos?: number | null;
 }
 
 export interface MaquinaRefResumen {
