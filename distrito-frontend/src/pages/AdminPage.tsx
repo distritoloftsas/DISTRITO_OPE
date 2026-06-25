@@ -8,6 +8,7 @@ import { useSedesKpis, useCambiarActivaSede, type SedeKpis } from "../features/s
 import { NuevaSedeModal } from "../features/sedes/NuevaSedeModal";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { VentasSection } from "../features/reportes/VentasSection";
+import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -230,6 +231,7 @@ export function AdminPage() {
               <>
                 <CierreCajaSection sedeId={sedeReportesId} />
                 <VentasSection sedeId={sedeReportesId} />
+                <ConsumoInsumosSection sedeId={sedeReportesId} />
               </>
             )}
           </div>

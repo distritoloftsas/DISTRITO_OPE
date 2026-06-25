@@ -2,6 +2,7 @@ package com.distritoloft.reportes;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -46,6 +47,29 @@ public class ReportesController {
         CierreCajaResponse data = service.cierreCaja(principal, fecha, sedeId);
         byte[] bytes = excelService.cierreCajaXlsx(data);
         String filename = "cierre-caja-" + data.fecha() + ".xlsx";
+        return xlsxResponse(filename, bytes);
+    }
+
+    @GetMapping("/consumo-insumos")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ConsumoInsumosResponse consumoInsumos(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        return service.consumoInsumos(principal, desde, hasta, sedeId);
+    }
+
+    @GetMapping(value = "/consumo-insumos.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ResponseEntity<byte[]> consumoInsumosXlsx(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        ConsumoInsumosResponse data = service.consumoInsumos(principal, desde, hasta, sedeId);
+        byte[] bytes = excelService.consumoInsumosXlsx(data);
+        String filename = "gasto-insumos-" + data.desde() + "_" + data.hasta() + ".xlsx";
         return xlsxResponse(filename, bytes);
     }
 

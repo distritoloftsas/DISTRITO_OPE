@@ -3,6 +3,7 @@ package com.distritoloft.reportes;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.MetodoPago;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
@@ -72,6 +73,40 @@ public class ExcelExportService {
             }
 
             autosize(sh, 7);
+            return aBytes(wb);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    public byte[] consumoInsumosXlsx(ConsumoInsumosResponse data) {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Estilos s = new Estilos(wb);
+            Sheet sh = wb.createSheet("Gasto en insumos");
+
+            tituloPagina(sh, s, "Gasto en insumos", 0, 5);
+
+            int r = 2;
+            r = par(sh, s, r, "Desde", data.desde().toString());
+            r = par(sh, s, r, "Hasta", data.hasta().toString());
+            r = par(sh, s, r, "Sede", data.sedeNombre());
+            r = parCop(sh, s, r, "Costo total", data.costoTotal());
+            r = par(sh, s, r, "Pedidos con consumo", String.valueOf(data.pedidosAfectados()));
+
+            r++;
+            subtitulo(sh, s, r++, "Detalle por insumo");
+            headerRow(sh, s, r++, "Insumo", "Cantidad", "Unidad", "Costo total", "Movimientos", "Pedidos");
+            for (var l : data.lineas()) {
+                Row row = sh.createRow(r++);
+                celdaTexto(row, 0, l.insumoNombre(), s.bordeIzq);
+                celdaNumero(row, 1, l.cantidadTotal(), s.bordeNumero3);
+                celdaTexto(row, 2, l.unidad().name(), s.bordeCentro);
+                celdaCop(row, 3, l.costoTotal(), s.bordeMonedaDer);
+                celdaNumero(row, 4, l.movimientos(), s.bordeCentro);
+                celdaNumero(row, 5, l.pedidosAfectados(), s.bordeCentro);
+            }
+
+            autosize(sh, 6);
             return aBytes(wb);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
