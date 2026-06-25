@@ -11,6 +11,7 @@ import { CicloCountdown } from "./CicloCountdown";
 import { tipoParaSiguienteEstado } from "../../types/maquina";
 import {
   ESTADOS_KANBAN,
+  ETIQUETA_CICLO,
   etiquetaEstado,
   siguienteEstado,
   type EstadoPedido,
@@ -246,6 +247,9 @@ function PedidoCard({
       {maquinaActual && (
         <p className="text-[10px] font-medium mt-0.5">
           {maquinaActual.tipo === "LAVADORA" ? "Lav" : "Sec"} {maquinaActual.numero}
+          {pedido.tipoCicloLavadora && maquinaActual.tipo === "LAVADORA" && (
+            <span className="opacity-70"> · {ETIQUETA_CICLO[pedido.tipoCicloLavadora]}</span>
+          )}
         </p>
       )}
       <CicloCountdown pedido={pedido} className="mt-0.5" />

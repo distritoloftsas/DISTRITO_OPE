@@ -15,7 +15,7 @@ import {
 import { useCierreCaja } from "./useCierreCaja";
 import type { MetodoPago } from "../../types/pedido";
 import { descargarXlsx } from "../../lib/descargarBlob";
-import { COLORES, PALETA_GRAFICAS } from "./colores";
+import { COLORES } from "./colores";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
   style: "currency",
@@ -370,5 +370,3 @@ function Tarjeta({
   );
 }
 
-// Para silenciar warning de paleta sin uso en CI.
-void PALETA_GRAFICAS;

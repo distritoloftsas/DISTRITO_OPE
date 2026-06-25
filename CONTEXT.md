@@ -75,6 +75,14 @@ público del pedido por QR).
 | 15 | PWA (manifest + iconos DL propios), Esc cierra modales, confirmar cerrar sesión, títulos de página, 404 propia |
 | 16+17 | **Inventario por sede + receta de consumo por plan**: descuento automático en LAVANDO/SECANDO con bloqueo si no hay stock |
 | 18 | **Trazabilidad**: costo promedio ponderado en ENTRADA, modal historial de movimientos por insumo, reporte de gasto en insumos por rango |
+| 19 | **Tiempos reales + tolerancia operativa por sede**: V14 ajusta duraciones de planes; sede.tolerancia_pre/post_lavado_minutos editable; countdown la suma |
+| 20 | **Excel XLSX** con Apache POI: endpoints `.xlsx` para cierre, ventas y consumo de insumos; botón "↓ Excel" en cada sección de Reportes |
+| 21 | **Perfil del cliente editable**: `GET/PATCH /api/clientes/me`, tab "Mi perfil" en ClientePage |
+| 22 | **Panel de clientes en Gerencia y Admin**: lista global con buscador y conteo, edición de datos, **activación de cuenta con contraseña temporal** desde el modal (must_change_password=true) |
+| 22b | **AdminPage rehecha** con nav de 3 pestañas (Sedes / Clientes / Reportes) y selector de sede |
+| 22c | **Reportes visuales con Recharts**: gráficas de barras, pie y línea de tendencia; bloque de verificación de cuadre en cierre; alertas de pedidos sin pago en ventas |
+| 23 | **Tipo de ciclo de lavadora (Sencillo 30 / Intermedio 36 / Deluxe 43)**: V15 + enum + columna en pedido; modal pide ciclo antes de la lavadora; countdown usa la duración del ciclo elegido |
+| 23b | **WhatsApp semiautomático**: helper `whatsappAvisar`, botón "WA" en cada card que abre `wa.me/<num>?text=<mensaje pre-armado>` según fase |
 
 ## Migraciones Flyway aplicadas
 
@@ -91,6 +99,8 @@ público del pedido por QR).
 - V11: `plan.duracion_lavado_minutos` (35) y `duracion_secado_minutos` (30); `pedido.fecha_inicio_lavado`, `fecha_inicio_secado`
 - V12: tabla `insumo` + `movimiento_insumo` + ENUMs `unidad_insumo`, `tipo_movimiento_insumo`
 - V13: tabla `plan_consumo` + ENUM `fase_consumo`
+- V14: `plan.duracion_lavado/secado` ajustadas + `sede.tolerancia_pre/post_lavado_minutos`
+- V15: ENUM `tipo_ciclo_lavadora` + `pedido.tipo_ciclo_lavadora`
 
 ## Endpoints clave
 
@@ -141,8 +151,18 @@ público del pedido por QR).
 - `DELETE /api/planes/consumos/{id}`
 
 ### Reportes
-- `GET /api/reportes/cierre-caja?fecha=&sedeId=`
-- `GET /api/reportes/consumo-insumos?desde=&hasta=&sedeId=`
+- `GET /api/reportes/cierre-caja?fecha=&sedeId=` (+ `.xlsx`)
+- `GET /api/reportes/consumo-insumos?desde=&hasta=&sedeId=` (+ `.xlsx`)
+- `GET /api/reportes/ventas?desde=&hasta=&sedeId=` (+ `.xlsx`)
+
+### Sede (continuación)
+- `GET /api/sedes/mi-sede` (gerente/empleado/super) — devuelve sede + tolerancias
+- `PATCH /api/sedes/{id}/tolerancia` — gerente solo sobre su sede; super admin cualquiera
+
+### Cliente (continuación)
+- `GET /api/clientes/me` y `PATCH /api/clientes/me` (rol CLIENTE)
+- `GET /api/clientes/conteo` → `{ total }`
+- `PATCH /api/clientes/{id}` y `POST /api/clientes/{id}/cuenta` (gerente/super)
 
 ## Reglas de negocio claves (acordadas)
 
