@@ -10,6 +10,7 @@ import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { TurnoSection } from "../features/turno/TurnoSection";
 import { AlertaSinRecoger } from "../features/pedidos/AlertaSinRecoger";
 import { AlertaStockBajo } from "../features/insumos/AlertaStockBajo";
+import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { ESTADOS_CERRADOS, ESTADOS_KANBAN } from "../types/pedido";
 
 export function EmpleadoPage() {
@@ -91,6 +92,10 @@ export function EmpleadoPage() {
         </div>
 
         <KanbanBoard estados={tab === "activos" ? ESTADOS_KANBAN : ESTADOS_CERRADOS} />
+
+        <div className="mt-10">
+          <CierreCajaSection titulo="Cierre de caja del día" />
+        </div>
       </main>
 
       {mostrarNuevo && (
