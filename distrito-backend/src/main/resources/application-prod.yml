@@ -28,7 +28,8 @@ distrito:
     # firmados se invalidan a cada redeploy.
     secret: ${JWT_SECRET:fallback-temporal-cambiar-asap-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+    # Si el env var llega, gana. Si no, default a la URL de prod.
+    allowed-origins: ${CORS_ORIGINS:https://app.distritoloft.com}
 
 management:
   endpoint:
