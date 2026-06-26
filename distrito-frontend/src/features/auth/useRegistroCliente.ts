@@ -8,6 +8,7 @@ export interface RegistroClientePayload {
   password: string;
   nombre: string;
   telefono: string;
+  aceptaHabeasData: boolean;
 }
 
 export function useRegistroCliente() {

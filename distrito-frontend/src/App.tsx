@@ -6,6 +6,7 @@ import { GerentePage } from "./pages/GerentePage";
 import { AdminPage } from "./pages/AdminPage";
 import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
 import { RegistroClientePage } from "./pages/RegistroClientePage";
+import { PoliticaTratamientoDatosPage } from "./pages/PoliticaTratamientoDatosPage";
 import { SeguimientoPublicoPage } from "./pages/SeguimientoPublicoPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { NotificationCenter } from "./components/NotificationCenter";
@@ -28,6 +29,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegistroClientePage />} />
+        <Route path="/legal/politica-tratamiento-datos" element={<PoliticaTratamientoDatosPage />} />
         <Route path="/p/:codigo" element={<SeguimientoPublicoPage />} />
         <Route
           path="/cambiar-password"

@@ -35,6 +35,8 @@ public class AuthService {
     @Value("${distrito.setup.super-admin-email}")
     private String superAdminEmail;
 
+    private static final String VERSION_POLITICA_ACTUAL = "1.0";
+
     @Transactional
     public AuthResponse setupPrimerAdmin(SetupRequest req) {
         if (usuarioRepository.count() > 0) {
@@ -94,6 +96,8 @@ public class AuthService {
             usuario.setEmail(req.email());
             usuario.setPasswordHash(passwordEncoder.encode(req.password()));
             usuario.setNombre(req.nombre());
+            usuario.setFechaAceptacionHabeasData(OffsetDateTime.now());
+            usuario.setVersionPoliticaAceptada(VERSION_POLITICA_ACTUAL);
         } else {
             if (usuarioRepository.existsByEmail(req.email())) {
                 throw new ReglaNegocioException("Ya existe un usuario con ese email.");
@@ -106,6 +110,8 @@ public class AuthService {
             usuario.setRol(RolUsuario.CLIENTE);
             usuario.setActivo(true);
             usuario.setMustChangePassword(false);
+            usuario.setFechaAceptacionHabeasData(OffsetDateTime.now());
+            usuario.setVersionPoliticaAceptada(VERSION_POLITICA_ACTUAL);
         }
 
         if (usuario.getClientePerfil() == null) {
