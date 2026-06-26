@@ -10,6 +10,13 @@
 # Hikari). El binding automatico evita el problema.
 spring:
   datasource:
+    # TEMPORAL: hardcoded para que el deploy arranque. Las env vars de
+    # Railway estan presentes pero no llegan al proceso por alguna razon.
+    # Apenas la app este UP, rotar el password de Neon y mover esto a
+    # variables. La URL aqui es la misma que Railway tiene.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://ep-falling-butterfly-aj1xkj3g.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require}
+    username: ${SPRING_DATASOURCE_USERNAME:neondb_owner}
+    password: ${SPRING_DATASOURCE_PASSWORD:npg_jmOxV3JLTc8K}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
