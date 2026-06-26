@@ -1,0 +1,12 @@
+# Forzar JDK 21 explicito. Nixpacks por default instala JDK 17 (LTS anterior)
+# aunque exista system.properties; la deteccion de version es inconsistente.
+# El paquete Nix es 'jdk21_headless' (sin GUI, mas liviano).
+
+[phases.setup]
+nixPkgs = ["jdk21_headless", "maven"]
+
+[phases.build]
+cmds = ["mvn -B -DskipTests clean package"]
+
+[start]
+cmd = "java -jar target/distrito-backend-0.0.1-SNAPSHOT.jar"
