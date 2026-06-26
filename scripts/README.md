@@ -1,5 +1,28 @@
 # Scripts operativos
 
+## Crear el primer super admin (bootstrap)
+
+`setup-superadmin.ps1` llama al endpoint publico `POST /api/auth/setup`
+que SOLO funciona si la tabla `usuario` esta vacia. Lo unico que necesitas
+es el backend corriendo. El password se pide enmascarado, nunca queda en
+historial ni en disco.
+
+### Uso
+
+```powershell
+# Localhost (default)
+powershell -ExecutionPolicy Bypass -File scripts\setup-superadmin.ps1
+
+# Apuntando a otro backend (QA o prod)
+powershell -ExecutionPolicy Bypass -File scripts\setup-superadmin.ps1 -BaseUrl "https://api.distritoloft.com"
+
+# Cambiando nombre o telefono
+powershell -ExecutionPolicy Bypass -File scripts\setup-superadmin.ps1 -Nombre "Otro Nombre" -Telefono "3001234567"
+```
+
+El email del super admin se toma de `application.yml`
+(`distrito.setup.super-admin-email`) y NO se puede cambiar desde aqui.
+
 ## Backup automatico de la base de datos
 
 `backup-db.ps1` ejecuta un `pg_dump` del contenedor `distrito-postgres` y guarda
