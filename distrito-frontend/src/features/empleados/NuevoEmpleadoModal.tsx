@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCrearEmpleado } from "./useEmpleados";
+import { useSedesKpis } from "../sedes/useSedes";
 import { useAuthStore } from "../../store/authStore";
 import { PasswordInput } from "../../components/PasswordInput";
 import type { RolUsuario } from "../../types/auth";
@@ -13,6 +14,9 @@ interface Props {
 export function NuevoEmpleadoModal({ onClose, onCreado, sedeIdInicial }: Props) {
   const usuario = useAuthStore((s) => s.usuario);
   const esSuper = usuario?.rol === "SUPER_ADMIN";
+
+  // Solo el super admin necesita seleccionar sede. El gerente la hereda.
+  const { data: sedes } = useSedesKpis();
 
   const [email, setEmail] = useState("");
   const [nombre, setNombre] = useState("");
@@ -86,7 +90,22 @@ export function NuevoEmpleadoModal({ onClose, onCreado, sedeIdInicial }: Props) 
                   <option value="GERENTE_SEDE">Gerente de sede</option>
                 </select>
               </div>
-              <Campo label="Sede ID" value={sedeId} onChange={setSedeId} required />
+              <div>
+                <label className="block text-xs text-stone-600 mb-1">Sede</label>
+                <select
+                  value={sedeId}
+                  onChange={(e) => setSedeId(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg bg-white"
+                >
+                  <option value="">Selecciona una sede</option>
+                  {(sedes ?? []).map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nombre} — {s.ciudad}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
