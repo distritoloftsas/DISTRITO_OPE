@@ -7,9 +7,10 @@ import type { RolUsuario } from "../../types/auth";
 interface Props {
   onClose: () => void;
   onCreado: (nombre: string) => void;
+  sedeIdInicial?: number;
 }
 
-export function NuevoEmpleadoModal({ onClose, onCreado }: Props) {
+export function NuevoEmpleadoModal({ onClose, onCreado, sedeIdInicial }: Props) {
   const usuario = useAuthStore((s) => s.usuario);
   const esSuper = usuario?.rol === "SUPER_ADMIN";
 
@@ -19,7 +20,7 @@ export function NuevoEmpleadoModal({ onClose, onCreado }: Props) {
   const [cargo, setCargo] = useState("");
   const [password, setPassword] = useState("");
   const [rol, setRol] = useState<RolUsuario>("EMPLEADO");
-  const [sedeId, setSedeId] = useState<string>("");
+  const [sedeId, setSedeId] = useState<string>(sedeIdInicial ? String(sedeIdInicial) : "");
 
   const crear = useCrearEmpleado();
 
