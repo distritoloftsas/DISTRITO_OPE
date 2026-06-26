@@ -184,7 +184,7 @@ function Graficas({ data }: { data: VentasResponse }) {
                 tick={{ fontSize: 11 }}
               />
               <Tooltip
-                formatter={(v: number) => formatoCOP.format(v)}
+                formatter={(v: any) => formatoCOP.format(Number(v) || 0)}
                 cursor={{ fill: "rgba(0,0,0,0.04)" }}
               />
               <Bar dataKey="total" fill={COLORES.dorado} radius={[4, 4, 0, 0]} />
@@ -218,7 +218,7 @@ function Graficas({ data }: { data: VentasResponse }) {
                   <Cell key={i} fill={colorPorIndex(i)} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => formatoCOP.format(v)} />
+              <Tooltip formatter={(v: any) => formatoCOP.format(Number(v) || 0)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -245,7 +245,7 @@ function Graficas({ data }: { data: VentasResponse }) {
                 tickFormatter={(v) => formatoCOPCorto.format(Number(v))}
                 tick={{ fontSize: 11 }}
               />
-              <Tooltip formatter={(v: number) => formatoCOP.format(v)} />
+              <Tooltip formatter={(v: any) => formatoCOP.format(Number(v) || 0)} />
               <Line
                 type="monotone"
                 dataKey="acumulado"

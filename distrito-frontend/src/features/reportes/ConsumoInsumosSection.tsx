@@ -193,7 +193,7 @@ function Grafica({ ranking }: { ranking: RankingItem[] }) {
             width={110}
           />
           <Tooltip
-            formatter={(v: number) => formatoCOP.format(v)}
+            formatter={(v: any) => formatoCOP.format(Number(v) || 0)}
             cursor={{ fill: "rgba(0,0,0,0.04)" }}
           />
           <Bar dataKey="costo" radius={[0, 6, 6, 0]}>

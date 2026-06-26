@@ -221,7 +221,7 @@ function GraficasMetodos({ data }: { data: CierreData }) {
               tick={{ fontSize: 11 }}
             />
             <Tooltip
-              formatter={(v: number) => formatoCOP.format(v)}
+              formatter={(v: any) => formatoCOP.format(Number(v) || 0)}
               cursor={{ fill: "rgba(0,0,0,0.04)" }}
             />
             <Bar dataKey="total" radius={[6, 6, 0, 0]}>
@@ -258,7 +258,7 @@ function GraficasMetodos({ data }: { data: CierreData }) {
                   <Cell key={i} fill={d.fill} />
                 ))}
               </Pie>
-              <Tooltip formatter={(v: number) => formatoCOP.format(v)} />
+              <Tooltip formatter={(v: any) => formatoCOP.format(Number(v) || 0)} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
