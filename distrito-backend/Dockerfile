@@ -21,6 +21,10 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/distrito-backend-0.0.1-SNAPSHOT.jar app.jar
 
+# Defensa contra olvidar setear la variable en Railway. Si Railway la
+# define, Railway gana (env vars de runtime sobrescriben ENV del image).
+ENV SPRING_PROFILES_ACTIVE=prod
+
 # Railway inyecta el puerto via $PORT pero nuestro yml lee SERVER_PORT.
 # Ambos quedan disponibles al proceso.
 EXPOSE 8080
