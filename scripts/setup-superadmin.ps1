@@ -47,17 +47,18 @@ Write-Host "Debe tener al menos 8 caracteres. Usalo solo tu." -ForegroundColor Y
 $pass1 = Read-Host "Password" -AsSecureString
 $pass2 = Read-Host "Repite el password" -AsSecureString
 
-$plain1 = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-    [Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass1))
-$plain2 = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-    [Runtime.InteropServices.Marshal]::SecureStringToBSTR($pass2))
+# NetworkCredential extrae el texto plano del SecureString de forma confiable
+# en Windows PowerShell 5.1 y en PowerShell 7+. Es el patron documentado por
+# Microsoft. Otros approaches (PtrToStringAuto) fallan en algunas configs.
+$plain1 = [System.Net.NetworkCredential]::new("", $pass1).Password
+$plain2 = [System.Net.NetworkCredential]::new("", $pass2).Password
 
 if ($plain1 -ne $plain2) {
     Write-Host "Los passwords no coinciden." -ForegroundColor Red
     exit 1
 }
 if ($plain1.Length -lt 8) {
-    Write-Host "El password debe tener al menos 8 caracteres." -ForegroundColor Red
+    Write-Host "El password debe tener al menos 8 caracteres. (Detectados: $($plain1.Length))" -ForegroundColor Red
     exit 1
 }
 
