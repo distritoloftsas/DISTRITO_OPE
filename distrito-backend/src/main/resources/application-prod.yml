@@ -11,9 +11,12 @@ spring:
 
 distrito:
   jwt:
-    secret: ${JWT_SECRET}
+    # Fallback SOLO para que arranque y poder diagnosticar. En prod real
+    # JWT_SECRET DEBE estar en env vars - si esto se activa, los tokens
+    # firmados se invalidan a cada redeploy.
+    secret: ${JWT_SECRET:fallback-temporal-cambiar-asap-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
   cors:
-    allowed-origins: ${CORS_ORIGINS}
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
 
 management:
   endpoint:
