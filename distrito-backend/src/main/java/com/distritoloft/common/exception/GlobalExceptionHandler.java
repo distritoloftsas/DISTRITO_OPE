@@ -30,6 +30,13 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<ErrorResponse> handleTooManyRequests(DemasiadosIntentosException ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+                ErrorResponse.of(429, "Too Many Requests", ex.getMessage(), req.getRequestURI())
+        );
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest req) {
         List<ErrorResponse.FieldError> errores = ex.getBindingResult().getFieldErrors().stream()
