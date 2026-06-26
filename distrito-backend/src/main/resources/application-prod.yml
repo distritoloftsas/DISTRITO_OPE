@@ -1,13 +1,18 @@
-# Perfil PROD: producción. TODAS las credenciales se inyectan por variables de entorno.
-# No commitear secretos a este archivo.
+# Perfil PROD: produccion. Las credenciales de DB se leen via env vars
+# usando los nombres canonicos de Spring Boot (relaxed binding):
+#   SPRING_DATASOURCE_URL      -> spring.datasource.url
+#   SPRING_DATASOURCE_USERNAME -> spring.datasource.username
+#   SPRING_DATASOURCE_PASSWORD -> spring.datasource.password
+#
+# No usamos ${PLACEHOLDER} aqui porque Spring resolvio el literal
+# "${DB_URL}" sin sustituir en un deploy previo en Railway (causa
+# desconocida, probable conflicto con la inicializacion temprana de
+# Hikari). El binding automatico evita el problema.
 spring:
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: ${DB_POOL_SIZE:10}
+      maximum-pool-size: 10
 
 distrito:
   jwt:
