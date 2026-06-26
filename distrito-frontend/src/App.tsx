@@ -2,12 +2,14 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LoginPage } from "./features/auth/LoginPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ClientePage } from "./pages/ClientePage";
-import { EmpleadoPage } from "./pages/EmpleadoPage";
 import { GerentePage } from "./pages/GerentePage";
 import { AdminPage } from "./pages/AdminPage";
 import { CambiarPasswordPage } from "./pages/CambiarPasswordPage";
 import { RegistroClientePage } from "./pages/RegistroClientePage";
+import { PoliticaTratamientoDatosPage } from "./pages/PoliticaTratamientoDatosPage";
 import { SeguimientoPublicoPage } from "./pages/SeguimientoPublicoPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { NotificationCenter } from "./components/NotificationCenter";
 import { useAuthStore } from "./store/authStore";
 import { rutaInicialPorRol } from "./types/auth";
 
@@ -22,10 +24,12 @@ function Home() {
 function App() {
   return (
     <BrowserRouter>
+      <NotificationCenter />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegistroClientePage />} />
+        <Route path="/legal/politica-tratamiento-datos" element={<PoliticaTratamientoDatosPage />} />
         <Route path="/p/:codigo" element={<SeguimientoPublicoPage />} />
         <Route
           path="/cambiar-password"
@@ -44,18 +48,13 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route
-          path="/empleado"
-          element={
-            <ProtectedRoute roles={["EMPLEADO"]}>
-              <EmpleadoPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* La pantalla de operacion es la misma para empleado y gerente;
+            las pestanas se muestran segun los permisos del usuario. */}
+        <Route path="/empleado" element={<Navigate to="/gerente" replace />} />
         <Route
           path="/gerente"
           element={
-            <ProtectedRoute roles={["GERENTE_SEDE"]}>
+            <ProtectedRoute roles={["EMPLEADO", "GERENTE_SEDE"]}>
               <GerentePage />
             </ProtectedRoute>
           }
@@ -69,7 +68,7 @@ function App() {
           }
         />
 
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

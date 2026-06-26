@@ -1,4 +1,5 @@
 import { QRCodeSVG } from "qrcode.react";
+import { useEscape } from "../../lib/useEscape";
 import type { PedidoResponse } from "../../types/pedido";
 
 interface Props {
@@ -18,6 +19,7 @@ const formatoFecha = new Intl.DateTimeFormat("es-CO", {
 });
 
 export function TicketPedidoModal({ pedido, onClose }: Props) {
+  useEscape(onClose);
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 ticket-overlay">
       <div className="bg-white rounded-2xl border border-stone-200 w-full max-w-sm flex flex-col">

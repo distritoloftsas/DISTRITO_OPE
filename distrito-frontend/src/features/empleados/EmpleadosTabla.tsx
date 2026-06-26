@@ -1,25 +1,45 @@
+import { useState } from "react";
 import { useEmpleados, useCambiarActivoEmpleado } from "./useEmpleados";
+import { useAuthStore } from "../../store/authStore";
 import { etiquetaRol } from "../../types/auth";
+import { PermisosModal } from "./PermisosModal";
+import { NuevoEmpleadoModal } from "./NuevoEmpleadoModal";
+import type { EmpleadoResponse } from "../../types/empleado";
 
-export function EmpleadosTabla() {
-  const { data, isLoading, isError } = useEmpleados();
+interface Props {
+  sedeId?: number;
+}
+
+export function EmpleadosTabla({ sedeId }: Props = {}) {
+  const { data, isLoading, isError } = useEmpleados(sedeId);
   const cambiar = useCambiarActivoEmpleado();
+  const usuario = useAuthStore((s) => s.usuario);
+  const esSuperAdmin = usuario?.rol === "SUPER_ADMIN";
+  const [permisosEditar, setPermisosEditar] = useState<EmpleadoResponse | null>(null);
+  const [crear, setCrear] = useState(false);
 
   if (isLoading) return <p className="text-sm text-stone-500">Cargando empleados...</p>;
   if (isError) return <p className="text-sm text-red-600">No se pudieron cargar los empleados.</p>;
 
   const empleados = data ?? [];
 
-  if (empleados.length === 0) {
-    return (
-      <div className="border border-dashed border-stone-300 rounded-lg p-8 text-center text-sm text-stone-500">
-        Aún no hay empleados registrados.
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <button
+          onClick={() => setCrear(true)}
+          className="text-xs px-3 py-2 bg-distrito-black text-distrito-cream rounded-md"
+        >
+          + Nuevo empleado
+        </button>
+      </div>
+
+      {empleados.length === 0 ? (
+        <div className="border border-dashed border-stone-300 rounded-lg p-8 text-center text-sm text-stone-500">
+          Aún no hay empleados registrados. Usa el botón de arriba para crear el primero.
+        </div>
+      ) : (
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
       <table className="w-full text-sm">
         <thead className="bg-stone-50 text-stone-600 text-xs">
           <tr>
@@ -57,7 +77,15 @@ export function EmpleadosTabla() {
                   </span>
                 )}
               </td>
-              <td className="px-4 py-2 text-right">
+              <td className="px-4 py-2 text-right space-x-1">
+                {esSuperAdmin && (
+                  <button
+                    onClick={() => setPermisosEditar(e)}
+                    className="text-xs px-2 py-1 rounded border border-distrito-gold-dark text-distrito-black"
+                  >
+                    Permisos ({e.permisos?.length ?? 0})
+                  </button>
+                )}
                 <button
                   onClick={() => cambiar.mutate({ id: e.id, activo: !e.activo })}
                   disabled={cambiar.isPending}
@@ -74,6 +102,23 @@ export function EmpleadosTabla() {
           ))}
         </tbody>
       </table>
+
+          {permisosEditar && (
+            <PermisosModal
+              empleado={permisosEditar}
+              onClose={() => setPermisosEditar(null)}
+            />
+          )}
+        </div>
+      )}
+
+      {crear && (
+        <NuevoEmpleadoModal
+          sedeIdInicial={sedeId}
+          onClose={() => setCrear(false)}
+          onCreado={() => setCrear(false)}
+        />
+      )}
     </div>
   );
 }

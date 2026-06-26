@@ -48,6 +48,25 @@ public class SedeController {
         return new SedeCreadaResponse(s.getId(), s.getNombre(), s.getCiudad(), s.getActiva());
     }
 
+    @GetMapping("/mi-sede")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE','EMPLEADO','SUPER_ADMIN')")
+    public MiSedeResponse miSede(@AuthenticationPrincipal CustomUserDetails principal) {
+        return service.miSede(principal);
+    }
+
+    @PatchMapping("/{id}/tolerancia")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_TOLERANCIA')")
+    public MiSedeResponse actualizarTolerancia(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @PathVariable Long id,
+            @Valid @RequestBody ToleranciaRequest req) {
+        return service.actualizarTolerancia(principal, id, req.pre(), req.post());
+    }
+
     public record SedeCreadaResponse(Long id, String nombre, String ciudad, Boolean activa) {}
     public record CambioActivaRequest(@NotNull Boolean activa) {}
+    public record MiSedeResponse(Long id, String nombre, Integer toleranciaPreLavadoMinutos, Integer toleranciaPostLavadoMinutos) {}
+    public record ToleranciaRequest(
+            @NotNull @jakarta.validation.constraints.Min(0) Integer pre,
+            @NotNull @jakarta.validation.constraints.Min(0) Integer post) {}
 }

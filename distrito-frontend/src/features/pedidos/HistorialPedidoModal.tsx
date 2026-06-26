@@ -1,5 +1,6 @@
 import { useHistorialPedido, type HistorialEvento } from "./useHistorial";
 import { etiquetaEstado, type EstadoPedido, type PedidoResponse } from "../../types/pedido";
+import { useEscape } from "../../lib/useEscape";
 
 interface Props {
   pedido: PedidoResponse;
@@ -22,6 +23,7 @@ const formatoFecha = new Intl.DateTimeFormat("es-CO", {
 });
 
 export function HistorialPedidoModal({ pedido, onClose }: Props) {
+  useEscape(onClose);
   const { data, isLoading, isError } = useHistorialPedido(pedido.id);
 
   return (

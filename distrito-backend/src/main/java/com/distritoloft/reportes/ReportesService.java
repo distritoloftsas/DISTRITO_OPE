@@ -4,12 +4,18 @@ import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.MetodoPago;
 import com.distritoloft.common.enums.RolUsuario;
+import com.distritoloft.common.enums.TipoMovimientoInsumo;
+import com.distritoloft.insumo.MovimientoInsumo;
+import com.distritoloft.insumo.MovimientoInsumoRepository;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
 import com.distritoloft.pedido.Pago;
 import com.distritoloft.pedido.PagoRepository;
 import com.distritoloft.pedido.PedidoRepository;
+import com.distritoloft.pedido.Pedido;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
+import com.distritoloft.reportes.dto.VentasResponse;
 import com.distritoloft.sede.Sede;
 import com.distritoloft.sede.SedeRepository;
 import com.distritoloft.usuario.Usuario;
@@ -36,13 +42,14 @@ public class ReportesService {
     private final PedidoRepository pedidoRepository;
     private final SedeRepository sedeRepository;
     private final UsuarioRepository usuarioRepository;
+    private final MovimientoInsumoRepository movimientoInsumoRepository;
 
     @Transactional(readOnly = true)
     public CierreCajaResponse cierreCaja(CustomUserDetails principal, LocalDate fecha, Long sedeIdParam) {
         Usuario actual = cargarUsuarioActual(principal);
 
-        if (actual.getRol() != RolUsuario.GERENTE_SEDE && actual.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente o el super admin pueden ver el cierre de caja.");
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no tienen acceso al cierre de caja.");
         }
 
         LocalDate fechaConsulta = fecha != null ? fecha : LocalDate.now(ZONA_COLOMBIA);
@@ -107,10 +114,124 @@ public class ReportesService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public ConsumoInsumosResponse consumoInsumos(CustomUserDetails principal,
+                                                 LocalDate desde, LocalDate hasta,
+                                                 Long sedeIdParam) {
+        Usuario actual = cargarUsuarioActual(principal);
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no tienen acceso a reportes.");
+        }
+
+        LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA);
+        LocalDate hastaReal = hasta != null ? hasta : LocalDate.now(ZONA_COLOMBIA);
+        if (hastaReal.isBefore(desdeReal)) {
+            throw new ReglaNegocioException("La fecha hasta no puede ser anterior a desde.");
+        }
+
+        Long sedeId = resolverSede(actual, sedeIdParam);
+        Sede sede = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+
+        OffsetDateTime od = desdeReal.atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+        OffsetDateTime oh = hastaReal.plusDays(1).atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+
+        List<MovimientoInsumo> consumos = movimientoInsumoRepository.movimientosPorTipoEnRango(
+                sedeId, TipoMovimientoInsumo.CONSUMO, od, oh);
+
+        // Agrupar por insumo.
+        java.util.Map<Long, java.util.List<MovimientoInsumo>> porInsumo = new java.util.LinkedHashMap<>();
+        for (MovimientoInsumo m : consumos) {
+            porInsumo.computeIfAbsent(m.getInsumo().getId(), k -> new java.util.ArrayList<>()).add(m);
+        }
+
+        BigDecimal costoTotal = BigDecimal.ZERO;
+        java.util.Set<Long> pedidosUnicos = new java.util.HashSet<>();
+        List<ConsumoInsumosResponse.LineaInsumo> lineas = new java.util.ArrayList<>();
+
+        for (var entry : porInsumo.entrySet()) {
+            var movs = entry.getValue();
+            BigDecimal cantidad = BigDecimal.ZERO;
+            BigDecimal costo = BigDecimal.ZERO;
+            java.util.Set<Long> pedidosInsumo = new java.util.HashSet<>();
+            for (MovimientoInsumo m : movs) {
+                cantidad = cantidad.add(m.getCantidad());
+                if (m.getCostoUnitario() != null) {
+                    costo = costo.add(m.getCostoUnitario().multiply(m.getCantidad()));
+                }
+                if (m.getPedido() != null) {
+                    pedidosInsumo.add(m.getPedido().getId());
+                    pedidosUnicos.add(m.getPedido().getId());
+                }
+            }
+            costoTotal = costoTotal.add(costo);
+            var primero = movs.get(0).getInsumo();
+            lineas.add(new ConsumoInsumosResponse.LineaInsumo(
+                    primero.getId(), primero.getNombre(), primero.getUnidad(),
+                    cantidad, costo, movs.size(), pedidosInsumo.size()
+            ));
+        }
+
+        lineas.sort((a, b) -> b.costoTotal().compareTo(a.costoTotal()));
+
+        return new ConsumoInsumosResponse(
+                desdeReal, hastaReal, sede.getId(), sede.getNombre(),
+                costoTotal, pedidosUnicos.size(), lineas
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public VentasResponse ventas(CustomUserDetails principal,
+                                 LocalDate desde, LocalDate hasta,
+                                 Long sedeIdParam) {
+        Usuario actual = cargarUsuarioActual(principal);
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no tienen acceso a reportes.");
+        }
+
+        LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA);
+        LocalDate hastaReal = hasta != null ? hasta : LocalDate.now(ZONA_COLOMBIA);
+        if (hastaReal.isBefore(desdeReal)) {
+            throw new ReglaNegocioException("La fecha hasta no puede ser anterior a desde.");
+        }
+
+        Long sedeId = resolverSede(actual, sedeIdParam);
+        Sede sede = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+
+        OffsetDateTime od = desdeReal.atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+        OffsetDateTime oh = hastaReal.plusDays(1).atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+
+        List<Pedido> pedidos = pedidoRepository.ventasPorSedeEnRango(sedeId, od, oh, EstadoPedido.CANCELADO);
+
+        BigDecimal totalVentas = BigDecimal.ZERO;
+        List<VentasResponse.LineaVenta> lineas = new java.util.ArrayList<>(pedidos.size());
+        for (Pedido p : pedidos) {
+            totalVentas = totalVentas.add(p.getTotal() != null ? p.getTotal() : BigDecimal.ZERO);
+            lineas.add(new VentasResponse.LineaVenta(
+                    p.getId(),
+                    p.getCodigoQr(),
+                    p.getFechaRecepcion(),
+                    p.getCliente() != null ? p.getCliente().getNombre() : "",
+                    p.getPlan() != null ? p.getPlan().getNombre() : "",
+                    p.getTotal(),
+                    p.getPagado(),
+                    p.getEstado()
+            ));
+        }
+
+        return new VentasResponse(
+                desdeReal, hastaReal, sede.getId(), sede.getNombre(),
+                totalVentas, pedidos.size(), lineas
+        );
+    }
+
     private Long resolverSede(Usuario actual, Long sedeIdParam) {
-        if (actual.getRol() == RolUsuario.GERENTE_SEDE) {
+        // Gerente y empleado siempre operan sobre su propia sede; ignoran sedeId.
+        if (actual.getRol() == RolUsuario.GERENTE_SEDE
+                || actual.getRol() == RolUsuario.EMPLEADO) {
             if (actual.getEmpleadoPerfil() == null || actual.getEmpleadoPerfil().getSede() == null) {
-                throw new ReglaNegocioException("El gerente no tiene sede asignada.");
+                throw new ReglaNegocioException("El usuario no tiene sede asignada.");
             }
             return actual.getEmpleadoPerfil().getSede().getId();
         }

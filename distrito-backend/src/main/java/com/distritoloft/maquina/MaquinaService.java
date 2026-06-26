@@ -62,16 +62,19 @@ public class MaquinaService {
     @Transactional
     public MaquinaResponse cambiarEstado(CustomUserDetails principal, Long maquinaId, EstadoMaquina nuevo) {
         Usuario actual = cargarUsuarioActual(principal);
-        if (actual.getRol() != RolUsuario.GERENTE_SEDE && actual.getRol() != RolUsuario.SUPER_ADMIN) {
-            throw new ReglaNegocioException("Solo el gerente puede cambiar el estado de las máquinas.");
+        // Acceso fino: el controller exige permiso GESTIONAR_MAQUINAS. Aqui solo
+        // confirmamos que no sea un cliente que llegue por una grieta.
+        if (actual.getRol() == RolUsuario.CLIENTE) {
+            throw new ReglaNegocioException("Los clientes no manejan máquinas.");
         }
 
         Maquina m = maquinaRepository.findById(maquinaId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Máquina no encontrada: " + maquinaId));
 
-        if (actual.getRol() == RolUsuario.GERENTE_SEDE) {
-            Sede sedeGerente = actual.getEmpleadoPerfil().getSede();
-            if (!sedeGerente.getId().equals(m.getSede().getId())) {
+        // Quien no es super admin solo opera maquinas de su propia sede.
+        if (actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            Sede sedeUsuario = actual.getEmpleadoPerfil().getSede();
+            if (!sedeUsuario.getId().equals(m.getSede().getId())) {
                 throw new ReglaNegocioException("No puedes operar máquinas de otra sede.");
             }
         }

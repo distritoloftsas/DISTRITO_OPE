@@ -5,8 +5,10 @@ import { api } from "../lib/api";
 import { useAuthStore } from "../store/authStore";
 import { rutaInicialPorRol, type Usuario } from "../types/auth";
 import { PasswordInput } from "../components/PasswordInput";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export function CambiarPasswordPage() {
+  usePageTitle("Cambiar contraseña");
   const usuario = useAuthStore((s) => s.usuario);
   const setUsuario = useAuthStore((s) => s.setUsuario);
   const clearSession = useAuthStore((s) => s.clearSession);

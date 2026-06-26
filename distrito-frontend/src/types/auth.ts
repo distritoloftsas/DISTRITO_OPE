@@ -1,3 +1,5 @@
+import type { Permiso } from "./permiso";
+
 export type RolUsuario = "CLIENTE" | "EMPLEADO" | "GERENTE_SEDE" | "SUPER_ADMIN";
 
 export interface Usuario {
@@ -9,6 +11,13 @@ export interface Usuario {
   sedeNombre: string | null;
   mustChangePassword: boolean;
   activo: boolean;
+  permisos?: Permiso[];
+}
+
+export function tienePermiso(usuario: Usuario | null, permiso: Permiso): boolean {
+  if (!usuario) return false;
+  if (usuario.rol === "SUPER_ADMIN") return true; // tiene todo siempre
+  return Array.isArray(usuario.permisos) && usuario.permisos.includes(permiso);
 }
 
 export interface AuthResponse {
@@ -22,8 +31,8 @@ export function rutaInicialPorRol(rol: RolUsuario): string {
     case "CLIENTE":
       return "/cliente";
     case "EMPLEADO":
-      return "/empleado";
     case "GERENTE_SEDE":
+      // Operacion unificada: la nav se filtra por permisos del usuario
       return "/gerente";
     case "SUPER_ADMIN":
       return "/admin";

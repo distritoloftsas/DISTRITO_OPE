@@ -4,8 +4,10 @@ import { useRegistroCliente } from "../features/auth/useRegistroCliente";
 import { useAuthStore } from "../store/authStore";
 import { rutaInicialPorRol } from "../types/auth";
 import { PasswordInput } from "../components/PasswordInput";
+import { usePageTitle } from "../lib/usePageTitle";
 
 export function RegistroClientePage() {
+  usePageTitle("Crear cuenta");
   const usuario = useAuthStore((s) => s.usuario);
   const navigate = useNavigate();
   const registro = useRegistroCliente();
@@ -15,6 +17,7 @@ export function RegistroClientePage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmar, setConfirmar] = useState("");
+  const [aceptaHabeasData, setAceptaHabeasData] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (usuario) {
@@ -32,8 +35,12 @@ export function RegistroClientePage() {
       setError("La confirmación no coincide.");
       return;
     }
+    if (!aceptaHabeasData) {
+      setError("Debes aceptar la política de tratamiento de datos para continuar.");
+      return;
+    }
     registro.mutate(
-      { nombre, telefono, email, password },
+      { nombre, telefono, email, password, aceptaHabeasData },
       {
         onSuccess: (data) => navigate(rutaInicialPorRol(data.usuario.rol), { replace: true }),
         onError: (err: unknown) => {
@@ -79,13 +86,34 @@ export function RegistroClientePage() {
           autoComplete="new-password"
         />
 
+        <label className="flex items-start gap-2 mt-4 text-xs text-stone-600">
+          <input
+            type="checkbox"
+            checked={aceptaHabeasData}
+            onChange={(e) => setAceptaHabeasData(e.target.checked)}
+            className="mt-0.5 accent-distrito-gold-dark"
+          />
+          <span>
+            Acepto la{" "}
+            <Link
+              to="/legal/politica-tratamiento-datos"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-distrito-gold-dark underline"
+            >
+              política de tratamiento de datos personales
+            </Link>{" "}
+            de Distrito Loft S.A.S. conforme a la Ley 1581 de 2012.
+          </span>
+        </label>
+
         {error && (
           <p className="text-xs text-red-600 mt-3">{error}</p>
         )}
 
         <button
           type="submit"
-          disabled={registro.isPending}
+          disabled={registro.isPending || !aceptaHabeasData}
           className="w-full bg-distrito-black text-distrito-cream py-2.5 rounded-lg text-sm font-medium mt-5 disabled:opacity-50"
         >
           {registro.isPending ? "Creando cuenta..." : "Crear cuenta"}

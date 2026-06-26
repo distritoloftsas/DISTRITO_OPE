@@ -6,6 +6,7 @@ import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
 import com.distritoloft.usuario.ClientePerfil;
 import com.distritoloft.usuario.Usuario;
+import com.distritoloft.usuario.UsuarioPermisoRepository;
 import com.distritoloft.usuario.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ import java.time.OffsetDateTime;
 public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
+    private final UsuarioPermisoRepository permisoRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
@@ -32,6 +34,8 @@ public class AuthService {
 
     @Value("${distrito.setup.super-admin-email}")
     private String superAdminEmail;
+
+    private static final String VERSION_POLITICA_ACTUAL = "1.0";
 
     @Transactional
     public AuthResponse setupPrimerAdmin(SetupRequest req) {
@@ -51,7 +55,7 @@ public class AuthService {
         Usuario guardado = usuarioRepository.save(admin);
         String token = jwtService.generarToken(guardado);
 
-        return new AuthResponse(token, expirationMs, UsuarioResponse.from(guardado));
+        return new AuthResponse(token, expirationMs, UsuarioResponse.from(guardado, permisoRepository.findByUsuarioId(guardado.getId())));
     }
 
     @Transactional
@@ -70,7 +74,7 @@ public class AuthService {
         usuario.setUltimoLogin(OffsetDateTime.now());
         String token = jwtService.generarToken(usuario);
 
-        return new AuthResponse(token, expirationMs, UsuarioResponse.from(usuario));
+        return new AuthResponse(token, expirationMs, UsuarioResponse.from(usuario, permisoRepository.findByUsuarioId(usuario.getId())));
     }
 
     @Transactional
@@ -92,6 +96,8 @@ public class AuthService {
             usuario.setEmail(req.email());
             usuario.setPasswordHash(passwordEncoder.encode(req.password()));
             usuario.setNombre(req.nombre());
+            usuario.setFechaAceptacionHabeasData(OffsetDateTime.now());
+            usuario.setVersionPoliticaAceptada(VERSION_POLITICA_ACTUAL);
         } else {
             if (usuarioRepository.existsByEmail(req.email())) {
                 throw new ReglaNegocioException("Ya existe un usuario con ese email.");
@@ -104,6 +110,8 @@ public class AuthService {
             usuario.setRol(RolUsuario.CLIENTE);
             usuario.setActivo(true);
             usuario.setMustChangePassword(false);
+            usuario.setFechaAceptacionHabeasData(OffsetDateTime.now());
+            usuario.setVersionPoliticaAceptada(VERSION_POLITICA_ACTUAL);
         }
 
         if (usuario.getClientePerfil() == null) {
@@ -116,7 +124,7 @@ public class AuthService {
         guardado.setUltimoLogin(OffsetDateTime.now());
 
         String token = jwtService.generarToken(guardado);
-        return new AuthResponse(token, expirationMs, UsuarioResponse.from(guardado));
+        return new AuthResponse(token, expirationMs, UsuarioResponse.from(guardado, permisoRepository.findByUsuarioId(guardado.getId())));
     }
 
     @Transactional
@@ -133,13 +141,13 @@ public class AuthService {
 
         u.setPasswordHash(passwordEncoder.encode(req.passwordNueva()));
         u.setMustChangePassword(false);
-        return UsuarioResponse.from(u);
+        return UsuarioResponse.from(u, permisoRepository.findByUsuarioId(u.getId()));
     }
 
     @Transactional(readOnly = true)
     public UsuarioResponse obtenerActual(Long usuarioId) {
         Usuario u = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Usuario no encontrado."));
-        return UsuarioResponse.from(u);
+        return UsuarioResponse.from(u, permisoRepository.findByUsuarioId(u.getId()));
     }
 }

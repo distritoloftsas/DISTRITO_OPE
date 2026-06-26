@@ -35,6 +35,12 @@ public class Sede {
     @Column(nullable = false)
     private Boolean activa = true;
 
+    @Column(name = "tolerancia_pre_lavado_minutos", nullable = false)
+    private Integer toleranciaPreLavadoMinutos = 5;
+
+    @Column(name = "tolerancia_post_lavado_minutos", nullable = false)
+    private Integer toleranciaPostLavadoMinutos = 5;
+
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;

@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useRegistrarPago } from "./useRegistrarPago";
+import { useRegistrarPago, type PagoResponse } from "./useRegistrarPago";
+import { useEscape } from "../../lib/useEscape";
+import { notify, mensajeDeError } from "../../lib/notify";
+import { ReciboPagoModal } from "./ReciboPagoModal";
 import type { MetodoPago, PedidoResponse } from "../../types/pedido";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -21,23 +24,41 @@ const metodos: { value: MetodoPago; label: string }[] = [
 ];
 
 export function CobrarModal({ pedido, onClose, onCobrado }: Props) {
+  useEscape(onClose);
   const [metodo, setMetodo] = useState<MetodoPago>("EFECTIVO");
   const [referencia, setReferencia] = useState("");
+  const [reciboGenerado, setReciboGenerado] = useState<PagoResponse | null>(null);
   const registrar = useRegistrarPago();
 
   const submit = async () => {
     try {
-      await registrar.mutateAsync({
+      const pago = await registrar.mutateAsync({
         pedidoId: pedido.id,
         metodo,
         monto: pedido.total,
         referencia: referencia || undefined,
       });
-      onCobrado();
-    } catch {
-      // mostrado abajo
+      notify.exito(`Cobro de $${pedido.total.toLocaleString("es-CO")} registrado.`, "Pago recibido");
+      setReciboGenerado(pago);
+    } catch (err) {
+      notify.error(mensajeDeError(err, "No se pudo registrar el pago."));
     }
   };
+
+  const cerrarRecibo = () => {
+    setReciboGenerado(null);
+    onCobrado();
+  };
+
+  if (reciboGenerado) {
+    return (
+      <ReciboPagoModal
+        pedido={pedido}
+        pago={reciboGenerado}
+        onClose={cerrarRecibo}
+      />
+    );
+  }
 
   const errorMsg = errorMensaje(registrar.error);
 

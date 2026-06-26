@@ -49,6 +49,12 @@ public class Usuario {
     @Column(name = "ultimo_login")
     private OffsetDateTime ultimoLogin;
 
+    @Column(name = "fecha_aceptacion_habeas_data")
+    private OffsetDateTime fechaAceptacionHabeasData;
+
+    @Column(name = "version_politica_aceptada", length = 20)
+    private String versionPoliticaAceptada;
+
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
     private OffsetDateTime creadoEn;

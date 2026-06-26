@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -46,11 +48,29 @@ public class GlobalExceptionHandler {
         );
     }
 
+    /**
+     * Spring Security 6 lanza AuthorizationDeniedException cuando un
+     * @PreAuthorize/@permisoChecker bloquea la llamada. Antes esto caia
+     * en el handler de Exception y devolvia 500 con mensaje generico.
+     */
+    @ExceptionHandler({AuthorizationDeniedException.class, AccessDeniedException.class})
+    public ResponseEntity<ErrorResponse> handleAccessDenied(Exception ex, HttpServletRequest req) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ErrorResponse.of(403, "Forbidden",
+                        "No tienes permiso para esta acción. Pídele al administrador que te lo asigne.",
+                        req.getRequestURI())
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAll(Exception ex, HttpServletRequest req) {
         log.error("Error no manejado en {}", req.getRequestURI(), ex);
+        // Incluimos tipo de excepcion y mensaje para diagnosticar mas rapido
+        // en QA sin tener que ir al log. No exponemos stack trace.
+        String mensaje = ex.getClass().getSimpleName()
+                + (ex.getMessage() != null ? ": " + ex.getMessage() : "");
         return ResponseEntity.internalServerError().body(
-                ErrorResponse.of(500, "Internal Server Error", "Ocurrio un error inesperado", req.getRequestURI())
+                ErrorResponse.of(500, "Internal Server Error", mensaje, req.getRequestURI())
         );
     }
 }

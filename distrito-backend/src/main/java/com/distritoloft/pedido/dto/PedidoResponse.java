@@ -1,6 +1,7 @@
 package com.distritoloft.pedido.dto;
 
 import com.distritoloft.common.enums.EstadoPedido;
+import com.distritoloft.common.enums.TipoCicloLavadora;
 import com.distritoloft.common.enums.TipoMaquina;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.pedido.Pedido;
@@ -24,10 +25,17 @@ public record PedidoResponse(
         OffsetDateTime fechaInicioLavado,
         OffsetDateTime fechaInicioSecado,
         MaquinaResumen lavadora,
-        MaquinaResumen secadora
+        MaquinaResumen secadora,
+        TipoCicloLavadora tipoCicloLavadora,
+        Integer duracionLavadoCicloMinutos
 ) {
     public record ClienteResumen(Long id, String nombre, String telefono) {}
-    public record SedeResumen(Long id, String nombre) {}
+    public record SedeResumen(
+            Long id,
+            String nombre,
+            Integer toleranciaPreLavadoMinutos,
+            Integer toleranciaPostLavadoMinutos
+    ) {}
     public record PlanResumen(
             Long id,
             String nombre,
@@ -44,7 +52,12 @@ public record PedidoResponse(
                 p.getId(),
                 p.getCodigoQr(),
                 new ClienteResumen(p.getCliente().getId(), p.getCliente().getNombre(), p.getCliente().getTelefono()),
-                new SedeResumen(p.getSede().getId(), p.getSede().getNombre()),
+                new SedeResumen(
+                        p.getSede().getId(),
+                        p.getSede().getNombre(),
+                        p.getSede().getToleranciaPreLavadoMinutos(),
+                        p.getSede().getToleranciaPostLavadoMinutos()
+                ),
                 new PlanResumen(
                         p.getPlan().getId(),
                         p.getPlan().getNombre(),
@@ -64,7 +77,9 @@ public record PedidoResponse(
                 p.getFechaInicioLavado(),
                 p.getFechaInicioSecado(),
                 resumen(p.getLavadora()),
-                resumen(p.getSecadora())
+                resumen(p.getSecadora()),
+                p.getTipoCicloLavadora(),
+                p.getTipoCicloLavadora() != null ? p.getTipoCicloLavadora().getDuracionMinutos() : null
         );
     }
 

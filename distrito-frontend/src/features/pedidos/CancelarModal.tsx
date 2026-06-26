@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useCambiarEstado } from "./useCambiarEstado";
+import { useEscape } from "../../lib/useEscape";
 import type { PedidoResponse } from "../../types/pedido";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function CancelarModal({ pedido, onClose, onCancelado }: Props) {
+  useEscape(onClose);
   const [motivo, setMotivo] = useState("");
   const cambiar = useCambiarEstado();
 

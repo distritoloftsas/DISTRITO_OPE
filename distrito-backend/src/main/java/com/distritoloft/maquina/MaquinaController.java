@@ -5,6 +5,7 @@ import com.distritoloft.common.enums.EstadoMaquina;
 import com.distritoloft.maquina.dto.MaquinaResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,7 @@ public class MaquinaController {
     }
 
     @PatchMapping("/{id}/estado")
+    @PreAuthorize("@permisoChecker.tiene('GESTIONAR_MAQUINAS')")
     public MaquinaResponse cambiarEstado(
             @AuthenticationPrincipal CustomUserDetails principal,
             @PathVariable Long id,
