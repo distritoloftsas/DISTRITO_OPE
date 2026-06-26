@@ -422,9 +422,64 @@ docker compose up -d
 - Co-author en commits: omitido en este repo (el usuario commitea
   manualmente la mayoría).
 
-## Estado actual de develop (al cierre de esta sesión)
+## ESTADO ACTUAL: EN PRODUCCIÓN (2026-06-26)
 
-Último commit pusheado: **`3dfc766`** "Fix: AccessDenied → 403 (no 500)".
+**La app está LIVE:**
+
+| Servicio | URL | Plataforma |
+|---|---|---|
+| Frontend | https://app.distritoloft.com | Cloudflare Workers Static Assets |
+| Backend API | https://api.distritoloft.com | Railway (Dockerfile JDK 21) |
+| DB Postgres | (interno) | Neon (Postgres 16, US East Ohio) |
+
+Super admin de prod: `distritoloftsas@gmail.com` (creado el día del go-live; el password inicial fue rotado por el dueño).
+
+Tag `v2.0.0` en main (release de prod).
+
+### Pendientes de seguridad post-deploy (NO bloqueante pero pronto)
+
+1. **Rotar password de Neon** — quedó hardcoded en `application-prod.yml` durante el deploy de emergencia. Pasos:
+   - Neon → Roles → Reset password de `neondb_owner`
+   - Railway → Variables → editar `SPRING_DATASOURCE_PASSWORD` con el nuevo
+   - Quitar el password hardcoded del `application-prod.yml` (mantener solo el placeholder)
+2. **Quitar fallbacks hardcoded** del `application-prod.yml`: `SPRING_DATASOURCE_URL`, `_USERNAME` y `JWT_SECRET` tienen valores embebidos como red de seguridad mientras estabilizábamos el deploy. Mover todo a env vars únicamente.
+3. **Reemplazar `{{NIT}}`** en `distrito-frontend/src/pages/PoliticaTratamientoDatosPage.tsx`.
+
+### Env vars en Railway (prod)
+
+```
+SPRING_PROFILES_ACTIVE=prod
+SPRING_DATASOURCE_URL=jdbc:postgresql://ep-falling-butterfly-aj1xkj3g.c-3.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+SPRING_DATASOURCE_USERNAME=neondb_owner
+SPRING_DATASOURCE_PASSWORD=<rotar>
+JWT_SECRET=<hex 384 bit>
+JWT_EXPIRATION_MS=86400000
+CORS_ORIGINS=https://app.distritoloft.com
+SERVER_PORT=8080
+```
+
+Root Directory en Railway: `distrito-backend`. Builder: Dockerfile (auto). Auto-deploy en push a `main`.
+
+### Lecciones del deploy (no repetir)
+
+1. **JDK version mismatch en Nixpacks**: el `pom.xml` pide Java 21 pero Nixpacks instala JDK 17 por default aunque exista `system.properties`. Solución que funcionó: Dockerfile con `eclipse-temurin:21-jdk-alpine`.
+2. **Spring placeholders `${VAR}` no resolvían en Railway**: la causa raíz no se identificó del todo, pero el workaround robusto es usar **nombres canónicos** `SPRING_DATASOURCE_*` que Spring Boot mapea automático vía relaxed binding (sin necesidad de `${...}` en el yml).
+3. **Cloudflare proxy bloquea verificación de Railway**: el CNAME debe estar en "DNS only" (nube gris), no "Proxied" (naranja). Railway no puede ver el target real si está proxeado.
+4. **`mvnw` necesita +x en Linux** aunque haya sido commit desde Windows. Para Dockerfile esto está controlado, pero si volvemos a usar Nixpacks/Railpack, hacer `git update-index --chmod=+x distrito-backend/mvnw`.
+5. **Railway con CORS_ORIGINS faltante** → backend rechaza preflight. Tener fallback en `application-prod.yml` apuntando a la URL de prod.
+6. **Workers Static Assets en Cloudflare** (en lugar de Pages clásico) requiere `wrangler.jsonc` en root con `assets.directory` apuntando a `distrito-frontend/dist` y `not_found_handling: single-page-application` para que React Router funcione.
+
+### Sprint 30 (post-deploy): Rate limit en /api/auth
+
+- `RateLimiter` (in-memory, ventana deslizante por IP+endpoint)
+- Aplicado a `/api/auth/login` (10/min), `/registro-cliente` (5/min), `/setup` (3/min)
+- `DemasiadosIntentosException` → HTTP 429 con mensaje legible
+- Detección de IP real vía `X-Forwarded-For` (Cloudflare/Railway)
+- Para escalar a multi-instancia: migrar el `Map` a Redis manteniendo el contrato `allow(key, max, window)`
+
+## Estado anterior (antes del go-live)
+
+Último commit pre-deploy: **`3dfc766`** "Fix: AccessDenied → 403 (no 500)".
 
 Todo lo que sigue YA está commiteado y en `origin/develop`:
 
