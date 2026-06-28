@@ -55,6 +55,8 @@ describe("mensajeWhatsapp", () => {
     },
     estado: "RECIBIDO",
     total: 18000,
+    costoDomicilio: 0,
+    direccionEntrega: null,
     pagado: false,
     observaciones: null,
     fechaRecepcion: new Date().toISOString(),
