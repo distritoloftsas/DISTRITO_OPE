@@ -52,6 +52,18 @@ public class Pedido {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
 
+    /**
+     * Costo del domicilio. La empleada lo fija al crear el pedido cuando
+     * el plan incluye domicilio (el precio depende de la ubicacion).
+     * 0 si el plan no lo incluye.
+     */
+    @Column(name = "costo_domicilio", nullable = false, precision = 10, scale = 2)
+    private BigDecimal costoDomicilio = BigDecimal.ZERO;
+
+    /** Direccion donde el repartidor entrega. Obligatoria si plan.incluyeDomicilio. */
+    @Column(name = "direccion_entrega", columnDefinition = "TEXT")
+    private String direccionEntrega;
+
     @Column(nullable = false)
     private Boolean pagado = false;
 

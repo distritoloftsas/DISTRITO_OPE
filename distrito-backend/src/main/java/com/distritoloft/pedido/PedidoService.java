@@ -143,13 +143,31 @@ public class PedidoService {
                 ? req.fechaEntregaEstimada()
                 : calcularEntregaPorDefecto(plan);
 
+        // Domicilio: si el plan lo incluye, exigir direccion y costo. La
+        // empleada decide el costo segun la ubicacion. Si el plan NO lo
+        // incluye, ignoramos lo que mande el frontend (defensa).
+        java.math.BigDecimal costoDomicilio = java.math.BigDecimal.ZERO;
+        String direccionEntrega = null;
+        if (Boolean.TRUE.equals(plan.getIncluyeDomicilio())) {
+            if (req.direccionEntrega() == null || req.direccionEntrega().isBlank()) {
+                throw new ReglaNegocioException("Este plan incluye domicilio. La dirección de entrega es obligatoria.");
+            }
+            if (req.costoDomicilio() == null) {
+                throw new ReglaNegocioException("Este plan incluye domicilio. El costo del domicilio es obligatorio.");
+            }
+            costoDomicilio = req.costoDomicilio();
+            direccionEntrega = req.direccionEntrega().trim();
+        }
+
         Pedido pedido = new Pedido();
         pedido.setCodigoQr(generarCodigoQr());
         pedido.setCliente(cliente);
         pedido.setSede(sede);
         pedido.setPlan(plan);
         pedido.setEstado(EstadoPedido.RECIBIDO);
-        pedido.setTotal(plan.getPrecio());
+        pedido.setTotal(plan.getPrecio().add(costoDomicilio));
+        pedido.setCostoDomicilio(costoDomicilio);
+        pedido.setDireccionEntrega(direccionEntrega);
         pedido.setPagado(false);
         pedido.setObservaciones(req.observaciones());
         pedido.setFechaEntregaEstimada(entregaEstimada);

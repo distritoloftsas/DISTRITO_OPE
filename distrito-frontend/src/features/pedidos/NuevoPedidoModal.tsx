@@ -28,6 +28,8 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
   });
   const [planId, setPlanId] = useState<number | null>(null);
   const [observaciones, setObservaciones] = useState("");
+  const [direccionEntrega, setDireccionEntrega] = useState("");
+  const [costoDomicilio, setCostoDomicilio] = useState<string>("");
 
   const { data: resultados, isFetching } = useBuscarClientes(busqueda);
   const { data: planes } = usePlanes();
@@ -35,7 +37,10 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
   const crearPedido = useCrearPedido();
 
   const planSeleccionado = planes?.find((p) => p.id === planId);
-  const total = planSeleccionado?.precio ?? 0;
+  const precioPlan = planSeleccionado?.precio ?? 0;
+  const requiereDomicilio = planSeleccionado?.incluyeDomicilio ?? false;
+  const montoDomicilio = requiereDomicilio ? Number(costoDomicilio) || 0 : 0;
+  const total = precioPlan + montoDomicilio;
 
   const submit = async () => {
     let clienteId = cliente?.id;
@@ -57,11 +62,18 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
 
     if (!clienteId || !planId) return;
 
+    if (requiereDomicilio) {
+      if (!direccionEntrega.trim()) return;
+      if (!costoDomicilio || Number(costoDomicilio) < 0) return;
+    }
+
     try {
       const pedido = await crearPedido.mutateAsync({
         clienteId,
         planId,
         observaciones: observaciones || undefined,
+        direccionEntrega: requiereDomicilio ? direccionEntrega.trim() : undefined,
+        costoDomicilio: requiereDomicilio ? Number(costoDomicilio) : undefined,
       });
       onCreado(pedido.codigoQr);
     } catch {
@@ -175,6 +187,41 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
             </div>
           </Section>
 
+          {requiereDomicilio && (
+            <Section titulo="Domicilio">
+              <p className="text-[11px] text-stone-500 mb-2">
+                Este plan incluye domicilio. El precio depende de la ubicación.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-stone-600 mb-1">Dirección de entrega *</label>
+                  <textarea
+                    className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                    rows={2}
+                    placeholder="Calle 12 #5-30, apto 301, Barrio Centro"
+                    value={direccionEntrega}
+                    onChange={(e) => setDireccionEntrega(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-stone-600 mb-1">Costo del domicilio *</label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-stone-500">$</span>
+                    <input
+                      type="number"
+                      step="500"
+                      min="0"
+                      className="flex-1 px-3 py-2 text-sm border border-stone-300 rounded-lg"
+                      placeholder="5000"
+                      value={costoDomicilio}
+                      onChange={(e) => setCostoDomicilio(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
+          )}
+
           <Section titulo="Observaciones (opcional)">
             <textarea
               className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg"
@@ -185,7 +232,20 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
             />
           </Section>
 
-          <div className="bg-distrito-cream rounded-lg p-4">
+          <div className="bg-distrito-cream rounded-lg p-4 space-y-1.5">
+            {requiereDomicilio && montoDomicilio > 0 && (
+              <>
+                <div className="flex justify-between text-xs text-stone-600">
+                  <span>{planSeleccionado?.nombre}</span>
+                  <span>{formatoCOP.format(precioPlan)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-stone-600">
+                  <span>Domicilio</span>
+                  <span>{formatoCOP.format(montoDomicilio)}</span>
+                </div>
+                <div className="border-t border-stone-300 pt-1.5" />
+              </>
+            )}
             <div className="flex justify-between text-sm">
               <span className="text-stone-600">Total</span>
               <span className="font-medium">{formatoCOP.format(total)}</span>
@@ -210,6 +270,7 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
               !planId ||
               (modo === "buscar" && !cliente) ||
               (modo === "nuevo" && (!nuevoCliente.nombre || !nuevoCliente.telefono)) ||
+              (requiereDomicilio && (!direccionEntrega.trim() || !costoDomicilio)) ||
               crearCliente.isPending ||
               crearPedido.isPending
             }

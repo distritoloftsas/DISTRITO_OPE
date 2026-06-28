@@ -44,6 +44,8 @@ export interface PedidoResponse {
   };
   estado: EstadoPedido;
   total: number;
+  costoDomicilio: number;
+  direccionEntrega: string | null;
   pagado: boolean;
   observaciones: string | null;
   fechaRecepcion: string;

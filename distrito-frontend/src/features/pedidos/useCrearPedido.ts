@@ -8,6 +8,8 @@ interface CrearPedidoPayload {
   planId: number;
   observaciones?: string;
   fechaEntregaEstimada?: string;
+  direccionEntrega?: string;
+  costoDomicilio?: number;
 }
 
 export function useCrearPedido() {

@@ -68,6 +68,24 @@ export function ReciboPagoModal({ pedido, pago, onClose }: Props) {
             )}
           </div>
 
+          {pedido.costoDomicilio > 0 && (
+            <div className="border-t border-dashed border-stone-300 pt-3 mb-3 text-xs space-y-1.5">
+              <Linea
+                etiqueta={pedido.plan.nombre}
+                valor={formatoCOP.format(pedido.plan.precio)}
+              />
+              <Linea
+                etiqueta="Domicilio"
+                valor={formatoCOP.format(pedido.costoDomicilio)}
+              />
+              {pedido.direccionEntrega && (
+                <p className="text-[10px] text-stone-500 italic">
+                  Entrega: {pedido.direccionEntrega}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="border-t border-dashed border-stone-300 pt-3 mb-3 text-xs space-y-1.5">
             <Linea etiqueta="Método" valor={METODO_LABEL[pago.metodo]} />
             {pago.referencia && (
