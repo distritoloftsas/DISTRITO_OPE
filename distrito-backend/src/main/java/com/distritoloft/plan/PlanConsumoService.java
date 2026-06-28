@@ -2,6 +2,7 @@ package com.distritoloft.plan;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.common.enums.RolUsuario;
+import com.distritoloft.common.enums.UnidadInsumo;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
 import com.distritoloft.insumo.Insumo;
@@ -53,11 +54,18 @@ public class PlanConsumoService {
                     "Ya existe una línea de consumo de ese insumo en esa fase. Editala o eliminala.");
         }
 
+        if (!UnidadInsumo.sonCompatibles(req.unidad(), insumo.getUnidad())) {
+            throw new ReglaNegocioException(
+                    "La unidad de la receta (" + req.unidad() + ") no es compatible con la del insumo ("
+                            + insumo.getUnidad() + "). Solo se puede convertir entre volumen (ml/l) o entre peso (g/kg).");
+        }
+
         PlanConsumo pc = new PlanConsumo();
         pc.setPlan(plan);
         pc.setInsumo(insumo);
         pc.setFase(req.fase());
         pc.setCantidad(req.cantidad());
+        pc.setUnidad(req.unidad());
         return PlanConsumoResponse.from(repo.save(pc));
     }
 

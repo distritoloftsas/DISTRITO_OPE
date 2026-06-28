@@ -7,6 +7,7 @@ import com.distritoloft.common.enums.FaseConsumo;
 import com.distritoloft.common.enums.RolUsuario;
 import com.distritoloft.common.enums.TipoMaquina;
 import com.distritoloft.common.enums.TipoMovimientoInsumo;
+import com.distritoloft.common.enums.UnidadInsumo;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
 import com.distritoloft.insumo.Insumo;
@@ -281,27 +282,41 @@ public class PedidoService {
 
         if (lineas.isEmpty()) return; // Sin receta para esta fase, no descuenta nada.
 
-        // Primera pasada: validar que haya stock suficiente para TODO antes de tocar nada.
-        for (PlanConsumo linea : lineas) {
+        // Primera pasada: convertir cantidad de la receta a la unidad del
+        // insumo y validar que haya stock suficiente para TODO antes de
+        // tocar nada. La receta puede estar en una unidad distinta a la del
+        // insumo (ej. insumo en LITROS, receta en MILILITROS).
+        java.math.BigDecimal[] cantidadesEnUnidadInsumo = new java.math.BigDecimal[lineas.size()];
+        for (int i = 0; i < lineas.size(); i++) {
+            PlanConsumo linea = lineas.get(i);
             Insumo insumo = linea.getInsumo();
-            if (insumo.getStockActual().compareTo(linea.getCantidad()) < 0) {
+            java.math.BigDecimal cantidadInsumo = UnidadInsumo.convertir(
+                    linea.getCantidad(), linea.getUnidad(), insumo.getUnidad());
+            cantidadesEnUnidadInsumo[i] = cantidadInsumo;
+            if (insumo.getStockActual().compareTo(cantidadInsumo) < 0) {
                 throw new ReglaNegocioException(
                         "No hay suficiente " + insumo.getNombre()
-                                + " (necesario " + formatoCantidad(linea.getCantidad())
-                                + ", disponible " + formatoCantidad(insumo.getStockActual()) + ")."
+                                + " (necesario " + formatoCantidad(cantidadInsumo)
+                                + " " + insumo.getUnidad().name().toLowerCase()
+                                + ", disponible " + formatoCantidad(insumo.getStockActual())
+                                + " " + insumo.getUnidad().name().toLowerCase() + ")."
                 );
             }
         }
 
-        // Segunda pasada: descontar y registrar movimiento.
-        for (PlanConsumo linea : lineas) {
+        // Segunda pasada: descontar y registrar movimiento (en la unidad del
+        // insumo, que es como esta el inventario).
+        for (int i = 0; i < lineas.size(); i++) {
+            PlanConsumo linea = lineas.get(i);
             Insumo insumo = linea.getInsumo();
-            insumo.setStockActual(insumo.getStockActual().subtract(linea.getCantidad()));
+            java.math.BigDecimal cantidadInsumo = cantidadesEnUnidadInsumo[i];
+
+            insumo.setStockActual(insumo.getStockActual().subtract(cantidadInsumo));
 
             MovimientoInsumo mov = new MovimientoInsumo();
             mov.setInsumo(insumo);
             mov.setTipo(TipoMovimientoInsumo.CONSUMO);
-            mov.setCantidad(linea.getCantidad());
+            mov.setCantidad(cantidadInsumo);
             mov.setCostoUnitario(insumo.getCostoUnitario());
             mov.setMotivo("Consumo " + fase.name().toLowerCase() + " · " + pedido.getCodigoQr());
             mov.setPedido(pedido);

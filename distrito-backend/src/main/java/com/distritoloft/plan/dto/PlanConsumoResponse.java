@@ -15,7 +15,8 @@ public record PlanConsumoResponse(
         Long sedeId,
         String sedeNombre,
         FaseConsumo fase,
-        BigDecimal cantidad
+        BigDecimal cantidad,
+        UnidadInsumo unidad
 ) {
     public static PlanConsumoResponse from(PlanConsumo pc) {
         return new PlanConsumoResponse(
@@ -27,7 +28,8 @@ public record PlanConsumoResponse(
                 pc.getInsumo().getSede().getId(),
                 pc.getInsumo().getSede().getNombre(),
                 pc.getFase(),
-                pc.getCantidad()
+                pc.getCantidad(),
+                pc.getUnidad()
         );
     }
 }

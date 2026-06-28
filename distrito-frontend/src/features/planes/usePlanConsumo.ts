@@ -14,6 +14,7 @@ export interface PlanConsumoResponse {
   sedeNombre: string;
   fase: FaseConsumo;
   cantidad: number;
+  unidad: UnidadInsumo;
 }
 
 export function usePlanConsumos(planId: number | null) {
@@ -32,15 +33,16 @@ export interface CrearPlanConsumoPayload {
   insumoId: number;
   fase: FaseConsumo;
   cantidad: number;
+  unidad: UnidadInsumo;
 }
 
 export function useCrearPlanConsumo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ planId, insumoId, fase, cantidad }: CrearPlanConsumoPayload) => {
+    mutationFn: async ({ planId, insumoId, fase, cantidad, unidad }: CrearPlanConsumoPayload) => {
       const { data } = await api.post<PlanConsumoResponse>(
         `/planes/${planId}/consumos`,
-        { insumoId, fase, cantidad }
+        { insumoId, fase, cantidad, unidad }
       );
       return data;
     },

@@ -40,6 +40,16 @@ public class PlanConsumo {
     @Column(nullable = false, precision = 12, scale = 3)
     private BigDecimal cantidad;
 
+    /**
+     * Unidad en la que se expresa la cantidad de esta receta. Puede diferir
+     * de la unidad del insumo (ej. insumo en LITROS, receta en MILILITROS).
+     * Al descontar inventario se convierte a la unidad del insumo.
+     */
+    @Enumerated(EnumType.STRING)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    @Column(nullable = false, columnDefinition = "unidad_insumo")
+    private com.distritoloft.common.enums.UnidadInsumo unidad;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
