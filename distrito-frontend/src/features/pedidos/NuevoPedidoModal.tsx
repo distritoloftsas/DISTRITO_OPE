@@ -3,6 +3,7 @@ import { useBuscarClientes } from "../clientes/useBuscarClientes";
 import { useCrearCliente } from "../clientes/useCrearCliente";
 import { useCrearPedido } from "./useCrearPedido";
 import { usePlanes } from "../planes/usePlanes";
+import { useDescuentos } from "../descuentos/useDescuentos";
 import type { ClienteResponse } from "../../types/cliente";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -30,9 +31,11 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
   const [observaciones, setObservaciones] = useState("");
   const [direccionEntrega, setDireccionEntrega] = useState("");
   const [costoDomicilio, setCostoDomicilio] = useState<string>("");
+  const [descuentoId, setDescuentoId] = useState<number | null>(null);
 
   const { data: resultados, isFetching } = useBuscarClientes(busqueda);
   const { data: planes } = usePlanes();
+  const { data: descuentos } = useDescuentos();
   const crearCliente = useCrearCliente();
   const crearPedido = useCrearPedido();
 
@@ -40,7 +43,10 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
   const precioPlan = planSeleccionado?.precio ?? 0;
   const requiereDomicilio = planSeleccionado?.incluyeDomicilio ?? false;
   const montoDomicilio = requiereDomicilio ? Number(costoDomicilio) || 0 : 0;
-  const total = precioPlan + montoDomicilio;
+  const descuentoSeleccionado = descuentos?.find((d) => d.id === descuentoId) ?? null;
+  const porcentajeDescuento = descuentoSeleccionado?.porcentaje ?? 0;
+  const montoDescuento = Math.round((precioPlan * porcentajeDescuento) / 100);
+  const total = precioPlan - montoDescuento + montoDomicilio;
 
   const submit = async () => {
     let clienteId = cliente?.id;
@@ -74,6 +80,7 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
         observaciones: observaciones || undefined,
         direccionEntrega: requiereDomicilio ? direccionEntrega.trim() : undefined,
         costoDomicilio: requiereDomicilio ? Number(costoDomicilio) : undefined,
+        descuentoId: descuentoId ?? undefined,
       });
       onCreado(pedido.codigoQr);
     } catch {
@@ -187,6 +194,24 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
             </div>
           </Section>
 
+          <Section titulo="Descuento (opcional)">
+            <p className="text-[11px] text-stone-500 mb-2">
+              Solo aplica sobre el precio del plan, no sobre el domicilio.
+            </p>
+            <select
+              className="w-full px-3 py-2 text-sm border border-stone-300 rounded-lg bg-white"
+              value={descuentoId ?? ""}
+              onChange={(e) => setDescuentoId(e.target.value ? Number(e.target.value) : null)}
+            >
+              <option value="">Sin descuento</option>
+              {descuentos?.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.etiqueta} (−{d.porcentaje}%)
+                </option>
+              ))}
+            </select>
+          </Section>
+
           {requiereDomicilio && (
             <Section titulo="Domicilio">
               <p className="text-[11px] text-stone-500 mb-2">
@@ -233,16 +258,24 @@ export function NuevoPedidoModal({ onClose, onCreado }: Props) {
           </Section>
 
           <div className="bg-distrito-cream rounded-lg p-4 space-y-1.5">
-            {requiereDomicilio && montoDomicilio > 0 && (
+            {planSeleccionado && (montoDescuento > 0 || montoDomicilio > 0) && (
               <>
                 <div className="flex justify-between text-xs text-stone-600">
-                  <span>{planSeleccionado?.nombre}</span>
+                  <span>{planSeleccionado.nombre}</span>
                   <span>{formatoCOP.format(precioPlan)}</span>
                 </div>
-                <div className="flex justify-between text-xs text-stone-600">
-                  <span>Domicilio</span>
-                  <span>{formatoCOP.format(montoDomicilio)}</span>
-                </div>
+                {montoDescuento > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-700">
+                    <span>Descuento {descuentoSeleccionado?.etiqueta} (−{porcentajeDescuento}%)</span>
+                    <span>−{formatoCOP.format(montoDescuento)}</span>
+                  </div>
+                )}
+                {montoDomicilio > 0 && (
+                  <div className="flex justify-between text-xs text-stone-600">
+                    <span>Domicilio</span>
+                    <span>{formatoCOP.format(montoDomicilio)}</span>
+                  </div>
+                )}
                 <div className="border-t border-stone-300 pt-1.5" />
               </>
             )}

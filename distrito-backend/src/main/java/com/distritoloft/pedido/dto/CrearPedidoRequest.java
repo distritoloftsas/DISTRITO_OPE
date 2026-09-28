@@ -14,5 +14,7 @@ public record CrearPedidoRequest(
         /** Solo se exige cuando el plan.incluyeDomicilio = true. */
         String direccionEntrega,
         /** Costo del domicilio. 0 o null si el plan no incluye domicilio. */
-        @PositiveOrZero BigDecimal costoDomicilio
+        @PositiveOrZero BigDecimal costoDomicilio,
+        /** Opcional. Si viene, se aplica el porcentaje del descuento sobre el plan (no sobre el domicilio). */
+        Long descuentoId
 ) {}

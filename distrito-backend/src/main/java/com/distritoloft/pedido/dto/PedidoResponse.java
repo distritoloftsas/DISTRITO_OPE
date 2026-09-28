@@ -3,6 +3,7 @@ package com.distritoloft.pedido.dto;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.TipoCicloLavadora;
 import com.distritoloft.common.enums.TipoMaquina;
+import com.distritoloft.descuento.Descuento;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.pedido.Pedido;
 
@@ -17,7 +18,11 @@ public record PedidoResponse(
         PlanResumen plan,
         EstadoPedido estado,
         BigDecimal total,
+        BigDecimal subtotal,
         BigDecimal costoDomicilio,
+        BigDecimal montoDescuento,
+        BigDecimal porcentajeDescuento,
+        DescuentoResumen descuento,
         String direccionEntrega,
         Boolean pagado,
         String observaciones,
@@ -48,6 +53,7 @@ public record PedidoResponse(
             Integer duracionSecadoMinutos
     ) {}
     public record MaquinaResumen(Long id, TipoMaquina tipo, Short numero) {}
+    public record DescuentoResumen(Long id, String codigo, String etiqueta) {}
 
     public static PedidoResponse from(Pedido p) {
         return new PedidoResponse(
@@ -71,7 +77,11 @@ public record PedidoResponse(
                 ),
                 p.getEstado(),
                 p.getTotal(),
+                p.getSubtotal(),
                 p.getCostoDomicilio(),
+                p.getMontoDescuento(),
+                p.getPorcentajeDescuento(),
+                resumenDescuento(p.getDescuento()),
                 p.getDireccionEntrega(),
                 p.getPagado(),
                 p.getObservaciones(),
@@ -90,5 +100,10 @@ public record PedidoResponse(
     private static MaquinaResumen resumen(Maquina m) {
         if (m == null) return null;
         return new MaquinaResumen(m.getId(), m.getTipo(), m.getNumero());
+    }
+
+    private static DescuentoResumen resumenDescuento(Descuento d) {
+        if (d == null) return null;
+        return new DescuentoResumen(d.getId(), d.getCodigo(), d.getEtiqueta());
     }
 }

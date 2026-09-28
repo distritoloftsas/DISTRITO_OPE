@@ -10,6 +10,7 @@ interface CrearPedidoPayload {
   fechaEntregaEstimada?: string;
   direccionEntrega?: string;
   costoDomicilio?: number;
+  descuentoId?: number | null;
 }
 
 export function useCrearPedido() {

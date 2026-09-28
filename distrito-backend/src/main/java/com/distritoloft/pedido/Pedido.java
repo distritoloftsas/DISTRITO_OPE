@@ -2,6 +2,7 @@ package com.distritoloft.pedido;
 
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.TipoCicloLavadora;
+import com.distritoloft.descuento.Descuento;
 import com.distritoloft.maquina.Maquina;
 import com.distritoloft.plan.Plan;
 import com.distritoloft.sede.Sede;
@@ -51,6 +52,25 @@ public class Pedido {
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
+
+    /** Precio del plan antes de descuento (sin domicilio). */
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal subtotal = BigDecimal.ZERO;
+
+    /**
+     * Descuento aplicado al pedido. Se congela el porcentaje al crear
+     * (columna aparte) para que si el descuento cambia luego el historico
+     * no se altere.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "descuento_id")
+    private Descuento descuento;
+
+    @Column(name = "porcentaje_descuento", nullable = false, precision = 5, scale = 2)
+    private BigDecimal porcentajeDescuento = BigDecimal.ZERO;
+
+    @Column(name = "monto_descuento", nullable = false, precision = 10, scale = 2)
+    private BigDecimal montoDescuento = BigDecimal.ZERO;
 
     /**
      * Costo del domicilio. La empleada lo fija al crear el pedido cuando

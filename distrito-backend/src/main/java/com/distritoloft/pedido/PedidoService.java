@@ -10,6 +10,8 @@ import com.distritoloft.common.enums.TipoMovimientoInsumo;
 import com.distritoloft.common.enums.UnidadInsumo;
 import com.distritoloft.common.exception.RecursoNoEncontradoException;
 import com.distritoloft.common.exception.ReglaNegocioException;
+import com.distritoloft.descuento.Descuento;
+import com.distritoloft.descuento.DescuentoRepository;
 import com.distritoloft.insumo.Insumo;
 import com.distritoloft.insumo.MovimientoInsumo;
 import com.distritoloft.insumo.MovimientoInsumoRepository;
@@ -50,6 +52,7 @@ public class PedidoService {
     private final PedidoEstadoHistorialRepository historialRepository;
     private final PlanConsumoRepository planConsumoRepository;
     private final MovimientoInsumoRepository movimientoInsumoRepository;
+    private final DescuentoRepository descuentoRepository;
 
     @PersistenceContext
     private EntityManager em;
@@ -159,13 +162,39 @@ public class PedidoService {
             direccionEntrega = req.direccionEntrega().trim();
         }
 
+        // Descuento (opcional). Solo aplica sobre el precio del plan.
+        // Guardamos el porcentaje en el pedido para que si mas adelante
+        // cambia el % del descuento, el historico no se altere.
+        Descuento descuento = null;
+        java.math.BigDecimal porcentajeDescuento = java.math.BigDecimal.ZERO;
+        java.math.BigDecimal montoDescuento = java.math.BigDecimal.ZERO;
+        if (req.descuentoId() != null) {
+            descuento = descuentoRepository.findById(req.descuentoId())
+                    .orElseThrow(() -> new RecursoNoEncontradoException(
+                            "Descuento no encontrado: " + req.descuentoId()));
+            if (!Boolean.TRUE.equals(descuento.getActivo())) {
+                throw new ReglaNegocioException("El descuento " + descuento.getEtiqueta() + " no está activo.");
+            }
+            porcentajeDescuento = descuento.getPorcentaje();
+            montoDescuento = plan.getPrecio()
+                    .multiply(porcentajeDescuento)
+                    .divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        }
+
+        java.math.BigDecimal subtotal = plan.getPrecio();
+        java.math.BigDecimal total = subtotal.subtract(montoDescuento).add(costoDomicilio);
+
         Pedido pedido = new Pedido();
         pedido.setCodigoQr(generarCodigoQr());
         pedido.setCliente(cliente);
         pedido.setSede(sede);
         pedido.setPlan(plan);
         pedido.setEstado(EstadoPedido.RECIBIDO);
-        pedido.setTotal(plan.getPrecio().add(costoDomicilio));
+        pedido.setSubtotal(subtotal);
+        pedido.setDescuento(descuento);
+        pedido.setPorcentajeDescuento(porcentajeDescuento);
+        pedido.setMontoDescuento(montoDescuento);
+        pedido.setTotal(total);
         pedido.setCostoDomicilio(costoDomicilio);
         pedido.setDireccionEntrega(direccionEntrega);
         pedido.setPagado(false);

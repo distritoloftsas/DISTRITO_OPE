@@ -44,7 +44,11 @@ export interface PedidoResponse {
   };
   estado: EstadoPedido;
   total: number;
+  subtotal: number;
   costoDomicilio: number;
+  montoDescuento: number;
+  porcentajeDescuento: number;
+  descuento: { id: number; codigo: string; etiqueta: string } | null;
   direccionEntrega: string | null;
   pagado: boolean;
   observaciones: string | null;
