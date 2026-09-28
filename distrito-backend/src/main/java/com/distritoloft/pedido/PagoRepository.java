@@ -12,6 +12,8 @@ import java.util.List;
 public interface PagoRepository extends JpaRepository<Pago, Long> {
     List<Pago> findByPedidoIdOrderByFechaAsc(Long pedidoId);
 
+    List<Pago> findByPedidoIdIn(java.util.Collection<Long> pedidoIds);
+
     @Query("""
             SELECT p FROM Pago p
             JOIN FETCH p.pedido pe

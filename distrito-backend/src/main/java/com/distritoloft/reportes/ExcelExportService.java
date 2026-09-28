@@ -9,9 +9,26 @@ import com.distritoloft.reportes.dto.VentasResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.ss.util.CellRangeAddressList;
+import org.apache.poi.xddf.usermodel.PresetColor;
+import org.apache.poi.xddf.usermodel.XDDFColor;
+import org.apache.poi.xddf.usermodel.XDDFSolidFillProperties;
+import org.apache.poi.xddf.usermodel.chart.AxisPosition;
+import org.apache.poi.xddf.usermodel.chart.BarDirection;
+import org.apache.poi.xddf.usermodel.chart.ChartTypes;
+import org.apache.poi.xddf.usermodel.chart.LegendPosition;
+import org.apache.poi.xddf.usermodel.chart.XDDFBarChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFCategoryAxis;
+import org.apache.poi.xddf.usermodel.chart.XDDFChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFChartLegend;
+import org.apache.poi.xddf.usermodel.chart.XDDFDataSourcesFactory;
+import org.apache.poi.xddf.usermodel.chart.XDDFPieChartData;
+import org.apache.poi.xddf.usermodel.chart.XDDFValueAxis;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFChart;
+import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
 import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -381,9 +398,178 @@ public class ExcelExportService {
             }
             autosize(refSh, 5);
 
+            // -------- Hoja 6: Gráficas --------
+            construirHojaGraficas(wb, s, data);
+
             return aBytes(wb);
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
+        }
+    }
+
+    private void construirHojaGraficas(XSSFWorkbook wb, Estilos s, ConsolidadoResponse data) {
+        XSSFSheet sh = wb.createSheet("Gráficas");
+        tituloPagina(sh, s, "Gráficas del período", 0, 6);
+
+        // 1) Ventas por plan: agrupar pedidos no cancelados por nombre de plan.
+        Map<String, java.math.BigDecimal> ventasPorPlan = new java.util.LinkedHashMap<>();
+        for (var l : data.pedidos()) {
+            if (l.estado() == EstadoPedido.CANCELADO) continue;
+            ventasPorPlan.merge(l.planNombre(),
+                    l.total() != null ? l.total() : java.math.BigDecimal.ZERO,
+                    java.math.BigDecimal::add);
+        }
+
+        // Tabla de datos para el chart 1 (col A/B, filas 3..N).
+        int rp = 2;
+        subtitulo(sh, s, rp++, "Ventas por plan");
+        headerRow(sh, s, rp++, "Plan", "Total");
+        int filaInicioPlanes = rp;
+        for (var e : ventasPorPlan.entrySet()) {
+            Row row = sh.createRow(rp++);
+            celdaTexto(row, 0, e.getKey(), s.bordeIzq);
+            celdaCop(row, 1, e.getValue(), s.bordeMonedaDer);
+        }
+        int filaFinPlanes = rp - 1;
+
+        // Tabla chart 2 (Descuentos por tipo) en col D/E.
+        int rd = 2;
+        Row rowSubDesc = sh.getRow(rd);
+        if (rowSubDesc == null) rowSubDesc = sh.createRow(rd);
+        Cell subDesc = rowSubDesc.createCell(3);
+        subDesc.setCellValue("Descuentos por tipo");
+        subDesc.setCellStyle(s.subtitulo);
+        rd++;
+        Row rowHeaderDesc = sh.getRow(rd);
+        if (rowHeaderDesc == null) rowHeaderDesc = sh.createRow(rd);
+        Cell hd1 = rowHeaderDesc.createCell(3);
+        hd1.setCellValue("Tipo");
+        hd1.setCellStyle(s.header);
+        Cell hd2 = rowHeaderDesc.createCell(4);
+        hd2.setCellValue("Monto");
+        hd2.setCellStyle(s.header);
+        rd++;
+        int filaInicioDesc = rd;
+        for (var d : data.descuentosPorTipo()) {
+            Row row = sh.getRow(rd);
+            if (row == null) row = sh.createRow(rd);
+            Cell c1 = row.createCell(3);
+            c1.setCellValue(d.etiqueta());
+            c1.setCellStyle(s.bordeIzq);
+            Cell c2 = row.createCell(4);
+            c2.setCellValue(d.montoDescontado() != null ? d.montoDescontado().doubleValue() : 0d);
+            c2.setCellStyle(s.bordeMonedaDer);
+            rd++;
+        }
+        int filaFinDesc = rd - 1;
+
+        // Tabla chart 3 (Pagos por método) en col G/H.
+        int rm = 2;
+        Row rowSubPag = sh.getRow(rm);
+        if (rowSubPag == null) rowSubPag = sh.createRow(rm);
+        Cell subPag = rowSubPag.createCell(6);
+        subPag.setCellValue("Pagos por método");
+        subPag.setCellStyle(s.subtitulo);
+        rm++;
+        Row rowHeaderPag = sh.getRow(rm);
+        if (rowHeaderPag == null) rowHeaderPag = sh.createRow(rm);
+        Cell hm1 = rowHeaderPag.createCell(6);
+        hm1.setCellValue("Método");
+        hm1.setCellStyle(s.header);
+        Cell hm2 = rowHeaderPag.createCell(7);
+        hm2.setCellValue("Monto");
+        hm2.setCellStyle(s.header);
+        rm++;
+        int filaInicioPag = rm;
+        for (var pm : data.pagosPorMetodo()) {
+            Row row = sh.getRow(rm);
+            if (row == null) row = sh.createRow(rm);
+            Cell c1 = row.createCell(6);
+            c1.setCellValue(etiqueta(pm.metodo()));
+            c1.setCellStyle(s.bordeIzq);
+            Cell c2 = row.createCell(7);
+            c2.setCellValue(pm.monto() != null ? pm.monto().doubleValue() : 0d);
+            c2.setCellStyle(s.bordeMonedaDer);
+            rm++;
+        }
+        int filaFinPag = rm - 1;
+
+        for (int i = 0; i < 8; i++) sh.setColumnWidth(i, 5000);
+
+        XSSFDrawing drawing = sh.createDrawingPatriarch();
+
+        // Zona debajo de las tablas para los charts.
+        int filaAncla = Math.max(filaFinPlanes, Math.max(filaFinDesc, filaFinPag)) + 3;
+
+        // --- Chart 1: Ventas por plan (barras) ---
+        if (filaFinPlanes >= filaInicioPlanes) {
+            XSSFClientAnchor anchor1 = drawing.createAnchor(0, 0, 0, 0,
+                    0, filaAncla, 6, filaAncla + 18);
+            XSSFChart chart1 = drawing.createChart(anchor1);
+            chart1.setTitleText("Ventas por plan");
+            chart1.setTitleOverlay(false);
+            XDDFChartLegend leg1 = chart1.getOrAddLegend();
+            leg1.setPosition(LegendPosition.BOTTOM);
+
+            XDDFCategoryAxis cat = chart1.createCategoryAxis(AxisPosition.BOTTOM);
+            XDDFValueAxis val = chart1.createValueAxis(AxisPosition.LEFT);
+            val.setCrosses(org.apache.poi.xddf.usermodel.chart.AxisCrosses.AUTO_ZERO);
+
+            var categorias = XDDFDataSourcesFactory.fromStringCellRange(sh,
+                    new CellRangeAddress(filaInicioPlanes, filaFinPlanes, 0, 0));
+            var valores = XDDFDataSourcesFactory.fromNumericCellRange(sh,
+                    new CellRangeAddress(filaInicioPlanes, filaFinPlanes, 1, 1));
+
+            XDDFBarChartData bar = (XDDFBarChartData) chart1.createData(ChartTypes.BAR, cat, val);
+            bar.setBarDirection(BarDirection.COL);
+            XDDFChartData.Series serie = bar.addSeries(categorias, valores);
+            serie.setTitle("Total ($)", null);
+            var fill = new XDDFSolidFillProperties(XDDFColor.from(PresetColor.STEEL_BLUE));
+            ((XDDFBarChartData.Series) serie).setFillProperties(fill);
+            chart1.plot(bar);
+        }
+
+        // --- Chart 2: Descuentos por tipo (pie) ---
+        if (filaFinDesc >= filaInicioDesc) {
+            XSSFClientAnchor anchor2 = drawing.createAnchor(0, 0, 0, 0,
+                    7, filaAncla, 13, filaAncla + 18);
+            XSSFChart chart2 = drawing.createChart(anchor2);
+            chart2.setTitleText("Descuentos por tipo");
+            chart2.setTitleOverlay(false);
+            XDDFChartLegend leg2 = chart2.getOrAddLegend();
+            leg2.setPosition(LegendPosition.RIGHT);
+
+            var cats = XDDFDataSourcesFactory.fromStringCellRange(sh,
+                    new CellRangeAddress(filaInicioDesc, filaFinDesc, 3, 3));
+            var vals = XDDFDataSourcesFactory.fromNumericCellRange(sh,
+                    new CellRangeAddress(filaInicioDesc, filaFinDesc, 4, 4));
+
+            XDDFPieChartData pie = (XDDFPieChartData) chart2.createData(ChartTypes.PIE, null, null);
+            pie.setVaryColors(true);
+            pie.addSeries(cats, vals).setTitle("Descuentos", null);
+            chart2.plot(pie);
+        }
+
+        // --- Chart 3: Pagos por método (pie) debajo del chart 1 ---
+        if (filaFinPag >= filaInicioPag) {
+            int anclaChart3 = filaAncla + 20;
+            XSSFClientAnchor anchor3 = drawing.createAnchor(0, 0, 0, 0,
+                    0, anclaChart3, 6, anclaChart3 + 18);
+            XSSFChart chart3 = drawing.createChart(anchor3);
+            chart3.setTitleText("Pagos por método");
+            chart3.setTitleOverlay(false);
+            XDDFChartLegend leg3 = chart3.getOrAddLegend();
+            leg3.setPosition(LegendPosition.RIGHT);
+
+            var cats = XDDFDataSourcesFactory.fromStringCellRange(sh,
+                    new CellRangeAddress(filaInicioPag, filaFinPag, 6, 6));
+            var vals = XDDFDataSourcesFactory.fromNumericCellRange(sh,
+                    new CellRangeAddress(filaInicioPag, filaFinPag, 7, 7));
+
+            XDDFPieChartData pie = (XDDFPieChartData) chart3.createData(ChartTypes.PIE, null, null);
+            pie.setVaryColors(true);
+            pie.addSeries(cats, vals).setTitle("Pagos", null);
+            chart3.plot(pie);
         }
     }
 

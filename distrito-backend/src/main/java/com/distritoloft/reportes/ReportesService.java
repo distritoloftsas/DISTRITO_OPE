@@ -336,16 +336,37 @@ public class ReportesService {
                     m, ctMetodo.getOrDefault(m, 0), sumMetodo.getOrDefault(m, BigDecimal.ZERO)));
         }
 
-        // Reembolsos: pedidos cancelados que estuvieron pagados. Sumar los
-        // pagos que efectivamente se hicieron (independiente de fecha cancelacion).
+        // Reembolsos: pedidos cancelados que estuvieron pagados. Necesitamos
+        // los pagos POR PEDIDO (no filtrados por fecha del pago) porque un
+        // pedido puede haberse pagado antes del rango consultado y cancelarse
+        // dentro. Ademas si Pago.pagado=true pero no hay pagos registrados,
+        // caemos al total del pedido como monto reembolsable.
+        List<Long> canceladosIds = pedidos.stream()
+                .filter(p -> p.getEstado() == EstadoPedido.CANCELADO)
+                .map(Pedido::getId)
+                .toList();
+        Map<Long, List<Pago>> pagosDeCancelados = new java.util.HashMap<>();
+        if (!canceladosIds.isEmpty()) {
+            for (Pago pg : pagoRepository.findByPedidoIdIn(canceladosIds)) {
+                pagosDeCancelados.computeIfAbsent(pg.getPedido().getId(),
+                        k -> new java.util.ArrayList<>()).add(pg);
+            }
+        }
         List<ConsolidadoResponse.LineaReembolso> reembolsos = new java.util.ArrayList<>();
         BigDecimal totalReembolsos = BigDecimal.ZERO;
         for (Pedido p : pedidos) {
             if (p.getEstado() != EstadoPedido.CANCELADO) continue;
-            List<Pago> pps = pagosPorPedido.getOrDefault(p.getId(), List.of());
-            if (pps.isEmpty()) continue;
-            BigDecimal monto = pps.stream().map(Pago::getMonto)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            List<Pago> pps = pagosDeCancelados.getOrDefault(p.getId(), List.of());
+            BigDecimal monto;
+            if (!pps.isEmpty()) {
+                monto = pps.stream().map(Pago::getMonto)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+            } else if (Boolean.TRUE.equals(p.getPagado())) {
+                // Marca "pagado" pero sin pagos registrados: reembolsar total.
+                monto = p.getTotal() != null ? p.getTotal() : BigDecimal.ZERO;
+            } else {
+                continue; // cancelado sin pagar, no es reembolso
+            }
             totalReembolsos = totalReembolsos.add(monto);
             reembolsos.add(new ConsolidadoResponse.LineaReembolso(
                     p.getId(), p.getCodigoQr(), p.getActualizadoEn(),
