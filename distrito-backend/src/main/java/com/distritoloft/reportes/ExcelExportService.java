@@ -267,32 +267,88 @@ public class ExcelExportService {
             wb.setForceFormulaRecalculation(true);
             autosize(pedSh, 11);
 
-            // -------- Hoja 2: Ventas (totales) --------
+            // Rangos de la hoja Pedidos que usan las siguientes hojas.
+            // Solo tienen sentido si hubo al menos una fila de datos.
+            boolean hayDatos = ultimaFilaDatos > primeraFilaDatos;
+            int primeraExcel = primeraFilaDatos + 1;
+            int ultimaExcel = ultimaFilaDatos; // 1-indexed inclusiva
+            String rangoEstado    = "Pedidos!$E$" + primeraExcel + ":$E$" + ultimaExcel;
+            String rangoSubtotal  = "Pedidos!$F$" + primeraExcel + ":$F$" + ultimaExcel;
+            String rangoDescLabel = "Pedidos!$G$" + primeraExcel + ":$G$" + ultimaExcel;
+            String rangoMontoDesc = "Pedidos!$H$" + primeraExcel + ":$H$" + ultimaExcel;
+            String rangoDomicilio = "Pedidos!$I$" + primeraExcel + ":$I$" + ultimaExcel;
+            String rangoTotal     = "Pedidos!$J$" + primeraExcel + ":$J$" + ultimaExcel;
+
+            // -------- Hoja 2: Totales --------
+            // Todos los valores son formulas que apuntan a la hoja Pedidos,
+            // asi cuando el usuario cambia un descuento en Pedidos, aqui se
+            // actualiza automatico. Se excluye "Cancelado" del subtotal,
+            // descuentos, domicilios y facturado.
             Sheet totSh = wb.createSheet("Totales");
             tituloPagina(totSh, s, "Consolidado del período", 0, 3);
             var t = data.totales();
             int rr = 2;
-            rr = par(totSh, s, rr, "Cantidad de pedidos", String.valueOf(t.cantidadPedidos()));
-            rr = par(totSh, s, rr, "Cancelados", String.valueOf(t.cantidadPedidosCancelados()));
-            rr = parCop(totSh, s, rr, "Subtotal bruto (sin descuentos)", t.subtotalBruto());
-            rr = parCop(totSh, s, rr, "Total descuentos aplicados", t.totalDescuentos());
-            rr = parCop(totSh, s, rr, "Total domicilios", t.totalDomicilios());
-            rr = parCop(totSh, s, rr, "Total facturado", t.totalFacturado());
-            rr = parCop(totSh, s, rr, "Ticket promedio", t.ticketPromedio());
+            if (hayDatos) {
+                rr = parFormula(totSh, s, rr, "Cantidad de pedidos",
+                        "COUNTA(Pedidos!$B$" + primeraExcel + ":$B$" + ultimaExcel + ")", false);
+                rr = parFormula(totSh, s, rr, "Cancelados",
+                        "COUNTIF(" + rangoEstado + ",\"Cancelado\")", false);
+                rr = parFormula(totSh, s, rr, "Subtotal bruto (sin descuentos)",
+                        "SUMIF(" + rangoEstado + ",\"<>Cancelado\"," + rangoSubtotal + ")", true);
+                rr = parFormula(totSh, s, rr, "Total descuentos aplicados",
+                        "SUMIF(" + rangoEstado + ",\"<>Cancelado\"," + rangoMontoDesc + ")", true);
+                rr = parFormula(totSh, s, rr, "Total domicilios",
+                        "SUMIF(" + rangoEstado + ",\"<>Cancelado\"," + rangoDomicilio + ")", true);
+                rr = parFormula(totSh, s, rr, "Total facturado",
+                        "SUMIF(" + rangoEstado + ",\"<>Cancelado\"," + rangoTotal + ")", true);
+                rr = parFormula(totSh, s, rr, "Ticket promedio",
+                        "IFERROR(SUMIF(" + rangoEstado + ",\"<>Cancelado\"," + rangoTotal + ")"
+                                + "/COUNTIF(" + rangoEstado + ",\"<>Cancelado\"),0)", true);
+            } else {
+                rr = par(totSh, s, rr, "Cantidad de pedidos", "0");
+                rr = par(totSh, s, rr, "Cancelados", "0");
+                rr = parCop(totSh, s, rr, "Subtotal bruto (sin descuentos)", java.math.BigDecimal.ZERO);
+                rr = parCop(totSh, s, rr, "Total descuentos aplicados", java.math.BigDecimal.ZERO);
+                rr = parCop(totSh, s, rr, "Total domicilios", java.math.BigDecimal.ZERO);
+                rr = parCop(totSh, s, rr, "Total facturado", java.math.BigDecimal.ZERO);
+                rr = parCop(totSh, s, rr, "Ticket promedio", java.math.BigDecimal.ZERO);
+            }
+            // Reembolsos son pedidos cancelados: el usuario no los edita,
+            // asi que se mantiene como valor calculado por backend.
             rr = parCop(totSh, s, rr, "Total reembolsos", t.totalReembolsos());
             autosize(totSh, 3);
 
             // -------- Hoja 3: Descuentos --------
+            // Filas fijas para los 4 tipos, cada una con COUNTIFS/SUMIFS que
+            // se actualizan cuando el usuario cambia descuentos en Pedidos.
             Sheet descSh = wb.createSheet("Descuentos");
             tituloPagina(descSh, s, "Descuentos aplicados", 0, 4);
             int rd = 2;
             headerRow(descSh, s, rd++, "Tipo", "Cantidad", "Total descontado");
-            for (var d : data.descuentosPorTipo()) {
+            String[][] categorias = {
+                    {"ESTUDIANTE",  "Estudiante universitario"},
+                    {"POLICIA",     "Policía"},
+                    {"SALUD",       "Sector salud (clínicas cercanas)"},
+                    {"RESIDENCIAL", "Sector residencial (Bambú, Multicentro, Los Tulipanes)"}
+            };
+            for (String[] cat : categorias) {
                 Row row = descSh.createRow(rd++);
-                XSSFCellStyle color = tint(wb, s.bordeIzq, colorDescuento(d.codigo()));
-                celdaTexto(row, 0, d.etiqueta(), color);
-                celdaNumero(row, 1, d.cantidadPedidos(), s.bordeCentro);
-                celdaCop(row, 2, d.montoDescontado(), s.bordeMonedaDer);
+                XSSFCellStyle color = tint(wb, s.bordeIzq, colorDescuento(cat[0]));
+                celdaTexto(row, 0, cat[1], color);
+                if (hayDatos) {
+                    Cell cant = row.createCell(1);
+                    cant.setCellFormula("COUNTIFS(" + rangoDescLabel + ",\"" + cat[1] + "\","
+                            + rangoEstado + ",\"<>Cancelado\")");
+                    cant.setCellStyle(s.bordeCentro);
+                    Cell monto = row.createCell(2);
+                    monto.setCellFormula("SUMIFS(" + rangoMontoDesc + ","
+                            + rangoDescLabel + ",\"" + cat[1] + "\","
+                            + rangoEstado + ",\"<>Cancelado\")");
+                    monto.setCellStyle(s.bordeMonedaDer);
+                } else {
+                    celdaNumero(row, 1, 0, s.bordeCentro);
+                    celdaCop(row, 2, java.math.BigDecimal.ZERO, s.bordeMonedaDer);
+                }
             }
             autosize(descSh, 3);
 
@@ -433,6 +489,18 @@ public class ExcelExportService {
         Cell c2 = r.createCell(1);
         c2.setCellValue(valor != null ? valor.doubleValue() : 0d);
         c2.setCellStyle(s.parametroCop);
+        return row + 1;
+    }
+
+    /** Etiqueta + formula. Si esCop pone formato monetario, si no numero simple. */
+    private int parFormula(Sheet sh, Estilos s, int row, String etiqueta, String formula, boolean esCop) {
+        Row r = sh.createRow(row);
+        Cell c1 = r.createCell(0);
+        c1.setCellValue(etiqueta);
+        c1.setCellStyle(s.parametroEtiqueta);
+        Cell c2 = r.createCell(1);
+        c2.setCellFormula(formula);
+        c2.setCellStyle(esCop ? s.parametroCop : s.parametroValor);
         return row + 1;
     }
 
