@@ -8,8 +8,11 @@ import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellRangeAddressList;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFDataValidationHelper;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
@@ -161,19 +164,31 @@ public class ExcelExportService {
             Map<String, XSSFCellStyle> tintMoneda   = new HashMap<>();
 
             // -------- Hoja 1: Pedidos --------
-            Sheet pedSh = wb.createSheet("Pedidos");
+            XSSFSheet pedSh = wb.createSheet("Pedidos");
             tituloPagina(pedSh, s, "Pedidos consolidados", 0, 10);
             int r = 2;
             r = par(pedSh, s, r, "Sede", data.sedeNombre());
             r = par(pedSh, s, r, "Desde", data.desde().toString());
             r = par(pedSh, s, r, "Hasta", data.hasta().toString());
             r++;
+
+            // Nota para el usuario: la col "Descuento" tiene dropdown, y las
+            // columnas -$ Desc y Total son formulas (F*0.1 si hay descuento).
+            Row nota = pedSh.createRow(r++);
+            Cell notaCell = nota.createCell(0);
+            notaCell.setCellValue("Tip: puedes cambiar el descuento con el desplegable; el monto y el total se recalculan solos.");
+            notaCell.setCellStyle(s.parametroValor);
+            pedSh.addMergedRegion(new CellRangeAddress(r - 1, r - 1, 0, 10));
+
             headerRow(pedSh, s, r++,
                     "Fecha", "Código", "Cliente", "Plan", "Estado",
                     "Subtotal", "Descuento", "-$ Desc", "Domicilio", "Total", "Pago");
 
+            int primeraFilaDatos = r; // 0-indexed
+
             for (var l : data.pedidos()) {
-                Row row = pedSh.createRow(r++);
+                Row row = pedSh.createRow(r);
+                int filaExcel = r + 1; // 1-indexed para formulas
                 boolean cancelado = l.estado() == EstadoPedido.CANCELADO;
                 String colorHex = cancelado ? "#fee2e2" : colorPlan(l.planNombre());
 
@@ -188,17 +203,68 @@ public class ExcelExportService {
                 celdaTexto(row, 4, etiqueta(l.estado()), centro);
                 celdaCop(row, 5, l.subtotal(), moneda);
 
-                if (l.descuentoCodigo() != null) {
-                    XSSFCellStyle descStyle = tint(wb, s.bordeCentro, colorDescuento(l.descuentoCodigo()));
-                    celdaTexto(row, 6, l.descuentoEtiqueta(), descStyle);
-                } else {
-                    celdaTexto(row, 6, "—", centro);
-                }
-                celdaCop(row, 7, l.montoDescuento(), moneda);
+                // Descuento: dropdown con las 4 opciones + "—".
+                String etiquetaDesc = l.descuentoEtiqueta() != null ? l.descuentoEtiqueta() : "—";
+                Cell cDesc = row.createCell(6);
+                cDesc.setCellValue(etiquetaDesc);
+                cDesc.setCellStyle(l.descuentoCodigo() != null
+                        ? tint(wb, s.bordeCentro, colorDescuento(l.descuentoCodigo()))
+                        : centro);
+
+                // -$ Desc: formula IF(descuento vacio o "—"; 0; subtotal * 10%).
+                // Todos los descuentos actuales son del 10%. Si en el futuro
+                // varian por tipo, esto pasa a VLOOKUP a una hoja de tarifas.
+                Cell cMontoDesc = row.createCell(7);
+                cMontoDesc.setCellFormula("IF(OR(G" + filaExcel + "=\"—\",G" + filaExcel + "=\"\"),0,F" + filaExcel + "*0.1)");
+                cMontoDesc.setCellStyle(moneda);
+
                 celdaCop(row, 8, l.costoDomicilio(), moneda);
-                celdaCop(row, 9, l.total(), moneda);
+
+                // Total: F - H + I. Se recalcula si el usuario cambia el descuento.
+                Cell cTotal = row.createCell(9);
+                cTotal.setCellFormula("F" + filaExcel + "-H" + filaExcel + "+I" + filaExcel);
+                cTotal.setCellStyle(moneda);
+
                 celdaTexto(row, 10, etiquetaMetodo(l.metodoPago()), centro);
+                r++;
             }
+
+            // Fila de totales con SUM sobre las columnas de dinero.
+            int ultimaFilaDatos = r; // exclusiva; ultima con datos es r-1
+            if (ultimaFilaDatos > primeraFilaDatos) {
+                Row totRow = pedSh.createRow(r++);
+                Cell etiq = totRow.createCell(4);
+                etiq.setCellValue("Totales");
+                etiq.setCellStyle(s.parametroEtiqueta);
+                int primeraExcel = primeraFilaDatos + 1;
+                int ultimaExcel = ultimaFilaDatos; // 1-indexed
+                for (int col : new int[]{5, 7, 8, 9}) {
+                    char letra = (char) ('A' + col);
+                    Cell c = totRow.createCell(col);
+                    c.setCellFormula("SUM(" + letra + primeraExcel + ":" + letra + ultimaExcel + ")");
+                    c.setCellStyle(s.parametroCop);
+                }
+            }
+
+            // Dropdown en col G para toda la region de datos.
+            if (ultimaFilaDatos > primeraFilaDatos) {
+                XSSFDataValidationHelper dvh = new XSSFDataValidationHelper(pedSh);
+                DataValidationConstraint constraint = dvh.createExplicitListConstraint(new String[]{
+                        "—",
+                        "Estudiante universitario",
+                        "Policía",
+                        "Sector salud (clínicas cercanas)",
+                        "Sector residencial (Bambú, Multicentro, Los Tulipanes)"
+                });
+                CellRangeAddressList rango = new CellRangeAddressList(primeraFilaDatos, ultimaFilaDatos - 1, 6, 6);
+                DataValidation dv = dvh.createValidation(constraint, rango);
+                dv.setShowErrorBox(true);
+                dv.setSuppressDropDownArrow(true);
+                pedSh.addValidationData(dv);
+            }
+
+            // Recalcular formulas al abrir el Excel.
+            wb.setForceFormulaRecalculation(true);
             autosize(pedSh, 11);
 
             // -------- Hoja 2: Ventas (totales) --------
