@@ -2,6 +2,7 @@ package com.distritoloft.reportes;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +79,29 @@ public class ReportesController {
         ConsumoInsumosResponse data = service.consumoInsumos(principal, desde, hasta, sedeId);
         byte[] bytes = excelService.consumoInsumosXlsx(data);
         String filename = "gasto-insumos-" + data.desde() + "_" + data.hasta() + ".xlsx";
+        return xlsxResponse(filename, bytes);
+    }
+
+    @GetMapping("/consolidado")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ConsolidadoResponse consolidado(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        return service.consolidado(principal, desde, hasta, sedeId);
+    }
+
+    @GetMapping(value = "/consolidado.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ResponseEntity<byte[]> consolidadoXlsx(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        ConsolidadoResponse data = service.consolidado(principal, desde, hasta, sedeId);
+        byte[] bytes = excelService.consolidadoXlsx(data);
+        String filename = "consolidado-" + data.desde() + "_" + data.hasta() + ".xlsx";
         return xlsxResponse(filename, bytes);
     }
 

@@ -14,6 +14,7 @@ import com.distritoloft.pedido.PagoRepository;
 import com.distritoloft.pedido.PedidoRepository;
 import com.distritoloft.pedido.Pedido;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import com.distritoloft.sede.Sede;
@@ -224,6 +225,148 @@ public class ReportesService {
                 desdeReal, hastaReal, sede.getId(), sede.getNombre(),
                 totalVentas, pedidos.size(), lineas
         );
+    }
+
+    @Transactional(readOnly = true)
+    public ConsolidadoResponse consolidado(CustomUserDetails principal,
+                                           LocalDate desde, LocalDate hasta,
+                                           Long sedeIdParam) {
+        Usuario actual = cargarUsuarioActual(principal);
+        if (actual.getRol() != RolUsuario.GERENTE_SEDE
+                && actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            throw new ReglaNegocioException("Solo gerentes de sede y super admin pueden ver el consolidado.");
+        }
+
+        LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA).withDayOfMonth(1);
+        LocalDate hastaReal = hasta != null ? hasta : LocalDate.now(ZONA_COLOMBIA);
+        if (hastaReal.isBefore(desdeReal)) {
+            throw new ReglaNegocioException("La fecha hasta no puede ser anterior a desde.");
+        }
+
+        Long sedeId = resolverSede(actual, sedeIdParam);
+        Sede sede = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+
+        OffsetDateTime od = desdeReal.atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+        OffsetDateTime oh = hastaReal.plusDays(1).atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+
+        List<Pedido> pedidos = pedidoRepository.consolidadoPorSedeEnRango(sedeId, od, oh);
+        List<Pago> pagos = pagoRepository.findPagosEntre(sedeId, od, oh);
+
+        // Agrupar pagos por pedido para inferir metodo (MIXTO si >1 metodo distinto).
+        java.util.Map<Long, List<Pago>> pagosPorPedido = new java.util.HashMap<>();
+        for (Pago pg : pagos) {
+            pagosPorPedido.computeIfAbsent(pg.getPedido().getId(), k -> new java.util.ArrayList<>()).add(pg);
+        }
+
+        // Lineas por pedido.
+        List<ConsolidadoResponse.LineaPedido> lineas = new java.util.ArrayList<>(pedidos.size());
+        BigDecimal subtotalBruto = BigDecimal.ZERO;
+        BigDecimal totalDescuentos = BigDecimal.ZERO;
+        BigDecimal totalDomicilios = BigDecimal.ZERO;
+        BigDecimal totalFacturado = BigDecimal.ZERO;
+        int cancelados = 0;
+
+        Map<String, java.math.BigDecimal[]> descMonto = new java.util.HashMap<>();
+        Map<String, String> descEtiqueta = new java.util.HashMap<>();
+        Map<String, int[]> descConteo = new java.util.HashMap<>();
+
+        for (Pedido p : pedidos) {
+            String metodoPago = null;
+            List<Pago> pps = pagosPorPedido.getOrDefault(p.getId(), List.of());
+            if (!pps.isEmpty()) {
+                var metodos = pps.stream().map(Pago::getMetodo).distinct().toList();
+                metodoPago = metodos.size() == 1 ? metodos.get(0).name() : "MIXTO";
+            }
+
+            BigDecimal sub = p.getSubtotal() != null ? p.getSubtotal() : BigDecimal.ZERO;
+            BigDecimal desc = p.getMontoDescuento() != null ? p.getMontoDescuento() : BigDecimal.ZERO;
+            BigDecimal dom  = p.getCostoDomicilio() != null ? p.getCostoDomicilio() : BigDecimal.ZERO;
+            BigDecimal tot  = p.getTotal() != null ? p.getTotal() : BigDecimal.ZERO;
+
+            // Cancelado sale de sumatorios de ventas pero se contabiliza para stats.
+            if (p.getEstado() == EstadoPedido.CANCELADO) {
+                cancelados++;
+            } else {
+                subtotalBruto  = subtotalBruto.add(sub);
+                totalDescuentos = totalDescuentos.add(desc);
+                totalDomicilios = totalDomicilios.add(dom);
+                totalFacturado  = totalFacturado.add(tot);
+            }
+
+            String descCodigo = p.getDescuento() != null ? p.getDescuento().getCodigo() : null;
+            String descLabel  = p.getDescuento() != null ? p.getDescuento().getEtiqueta() : null;
+
+            if (descCodigo != null && p.getEstado() != EstadoPedido.CANCELADO) {
+                descEtiqueta.putIfAbsent(descCodigo, descLabel);
+                descMonto.computeIfAbsent(descCodigo, k -> new BigDecimal[]{BigDecimal.ZERO})[0] =
+                        descMonto.get(descCodigo)[0].add(desc);
+                descConteo.computeIfAbsent(descCodigo, k -> new int[]{0})[0]++;
+            }
+
+            lineas.add(new ConsolidadoResponse.LineaPedido(
+                    p.getId(), p.getCodigoQr(), p.getFechaRecepcion(),
+                    p.getCliente() != null ? p.getCliente().getNombre() : "",
+                    p.getPlan() != null ? p.getPlan().getNombre() : "",
+                    p.getEstado(),
+                    sub, descCodigo, descLabel, desc, dom, tot,
+                    p.getPagado(), metodoPago
+            ));
+        }
+
+        List<ConsolidadoResponse.LineaDescuento> descuentos = new java.util.ArrayList<>();
+        for (var e : descMonto.entrySet()) {
+            descuentos.add(new ConsolidadoResponse.LineaDescuento(
+                    e.getKey(), descEtiqueta.get(e.getKey()),
+                    descConteo.get(e.getKey())[0], e.getValue()[0]));
+        }
+        descuentos.sort((a, b) -> b.montoDescontado().compareTo(a.montoDescontado()));
+
+        // Pagos por metodo (sobre TODOS los pagos del rango, incluyendo los de
+        // pedidos ya entregados o cancelados; refleja movimiento real de caja).
+        Map<MetodoPago, BigDecimal> sumMetodo = new EnumMap<>(MetodoPago.class);
+        Map<MetodoPago, Integer> ctMetodo = new EnumMap<>(MetodoPago.class);
+        for (Pago pg : pagos) {
+            sumMetodo.merge(pg.getMetodo(), pg.getMonto(), BigDecimal::add);
+            ctMetodo.merge(pg.getMetodo(), 1, Integer::sum);
+        }
+        List<ConsolidadoResponse.LineaPagoMetodo> pagosMetodos = new java.util.ArrayList<>();
+        for (MetodoPago m : MetodoPago.values()) {
+            pagosMetodos.add(new ConsolidadoResponse.LineaPagoMetodo(
+                    m, ctMetodo.getOrDefault(m, 0), sumMetodo.getOrDefault(m, BigDecimal.ZERO)));
+        }
+
+        // Reembolsos: pedidos cancelados que estuvieron pagados. Sumar los
+        // pagos que efectivamente se hicieron (independiente de fecha cancelacion).
+        List<ConsolidadoResponse.LineaReembolso> reembolsos = new java.util.ArrayList<>();
+        BigDecimal totalReembolsos = BigDecimal.ZERO;
+        for (Pedido p : pedidos) {
+            if (p.getEstado() != EstadoPedido.CANCELADO) continue;
+            List<Pago> pps = pagosPorPedido.getOrDefault(p.getId(), List.of());
+            if (pps.isEmpty()) continue;
+            BigDecimal monto = pps.stream().map(Pago::getMonto)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            totalReembolsos = totalReembolsos.add(monto);
+            reembolsos.add(new ConsolidadoResponse.LineaReembolso(
+                    p.getId(), p.getCodigoQr(), p.getActualizadoEn(),
+                    p.getCliente() != null ? p.getCliente().getNombre() : "",
+                    p.getPlan() != null ? p.getPlan().getNombre() : "",
+                    monto));
+        }
+
+        int lavadasVendidas = pedidos.size() - cancelados;
+        BigDecimal ticket = lavadasVendidas > 0
+                ? totalFacturado.divide(BigDecimal.valueOf(lavadasVendidas), 2, java.math.RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
+
+        ConsolidadoResponse.Totales totales = new ConsolidadoResponse.Totales(
+                pedidos.size(), cancelados,
+                subtotalBruto, totalDescuentos, totalDomicilios,
+                totalFacturado, ticket, totalReembolsos);
+
+        return new ConsolidadoResponse(
+                desdeReal, hastaReal, sede.getId(), sede.getNombre(),
+                totales, lineas, descuentos, pagosMetodos, reembolsos);
     }
 
     private Long resolverSede(Usuario actual, Long sedeIdParam) {

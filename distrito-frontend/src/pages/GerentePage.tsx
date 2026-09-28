@@ -10,6 +10,7 @@ import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
+import { ConsolidadoSection } from "../features/reportes/ConsolidadoSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
@@ -214,6 +215,9 @@ export function GerentePage() {
 
         {vista === "reportes" && (
           <div className="space-y-8">
+            {(usuario.rol === "GERENTE_SEDE" || usuario.rol === "SUPER_ADMIN") && (
+              <ConsolidadoSection />
+            )}
             {tienePermiso(usuario, "VER_CIERRE_CAJA") && <CierreCajaSection />}
             {tienePermiso(usuario, "VER_REPORTES_VENTAS") && <VentasSection />}
             {tienePermiso(usuario, "VER_REPORTES_INSUMOS") && <ConsumoInsumosSection />}

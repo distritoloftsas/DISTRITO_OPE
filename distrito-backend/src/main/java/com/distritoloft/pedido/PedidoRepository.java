@@ -113,4 +113,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
                                       @Param("desde") OffsetDateTime desde,
                                       @Param("hasta") OffsetDateTime hasta,
                                       @Param("cancelado") EstadoPedido cancelado);
+
+    /** Todos los pedidos de la sede en el rango (incluye cancelados) con descuento y plan. */
+    @Query("""
+            SELECT p FROM Pedido p
+            JOIN FETCH p.cliente
+            JOIN FETCH p.plan
+            LEFT JOIN FETCH p.descuento
+            WHERE p.sede.id = :sedeId
+              AND p.fechaRecepcion >= :desde AND p.fechaRecepcion < :hasta
+            ORDER BY p.fechaRecepcion DESC
+            """)
+    List<Pedido> consolidadoPorSedeEnRango(@Param("sedeId") Long sedeId,
+                                           @Param("desde") OffsetDateTime desde,
+                                           @Param("hasta") OffsetDateTime hasta);
 }

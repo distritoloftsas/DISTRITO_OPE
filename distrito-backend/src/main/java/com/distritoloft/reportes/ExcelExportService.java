@@ -3,10 +3,13 @@ package com.distritoloft.reportes;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.MetodoPago;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +19,7 @@ import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -146,6 +150,175 @@ public class ExcelExportService {
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
+    }
+
+    public byte[] consolidadoXlsx(ConsolidadoResponse data) {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Estilos s = new Estilos(wb);
+            // Estilos derivados con color de fondo por plan/descuento/cancelado.
+            Map<String, XSSFCellStyle> tintTextoIzq = new HashMap<>();
+            Map<String, XSSFCellStyle> tintCentro   = new HashMap<>();
+            Map<String, XSSFCellStyle> tintMoneda   = new HashMap<>();
+
+            // -------- Hoja 1: Pedidos --------
+            Sheet pedSh = wb.createSheet("Pedidos");
+            tituloPagina(pedSh, s, "Pedidos consolidados", 0, 10);
+            int r = 2;
+            r = par(pedSh, s, r, "Sede", data.sedeNombre());
+            r = par(pedSh, s, r, "Desde", data.desde().toString());
+            r = par(pedSh, s, r, "Hasta", data.hasta().toString());
+            r++;
+            headerRow(pedSh, s, r++,
+                    "Fecha", "Código", "Cliente", "Plan", "Estado",
+                    "Subtotal", "Descuento", "-$ Desc", "Domicilio", "Total", "Pago");
+
+            for (var l : data.pedidos()) {
+                Row row = pedSh.createRow(r++);
+                boolean cancelado = l.estado() == EstadoPedido.CANCELADO;
+                String colorHex = cancelado ? "#fee2e2" : colorPlan(l.planNombre());
+
+                XSSFCellStyle izq    = tintTextoIzq.computeIfAbsent(colorHex, c -> tint(wb, s.bordeIzq, c));
+                XSSFCellStyle centro = tintCentro.computeIfAbsent(colorHex, c -> tint(wb, s.bordeCentro, c));
+                XSSFCellStyle moneda = tintMoneda.computeIfAbsent(colorHex, c -> tint(wb, s.bordeMonedaDer, c));
+
+                celdaTexto(row, 0, l.fechaRecepcion() != null ? l.fechaRecepcion().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", izq);
+                celdaTexto(row, 1, l.codigoQr(), centro);
+                celdaTexto(row, 2, l.cliente(), izq);
+                celdaTexto(row, 3, l.planNombre(), izq);
+                celdaTexto(row, 4, etiqueta(l.estado()), centro);
+                celdaCop(row, 5, l.subtotal(), moneda);
+
+                if (l.descuentoCodigo() != null) {
+                    XSSFCellStyle descStyle = tint(wb, s.bordeCentro, colorDescuento(l.descuentoCodigo()));
+                    celdaTexto(row, 6, l.descuentoEtiqueta(), descStyle);
+                } else {
+                    celdaTexto(row, 6, "—", centro);
+                }
+                celdaCop(row, 7, l.montoDescuento(), moneda);
+                celdaCop(row, 8, l.costoDomicilio(), moneda);
+                celdaCop(row, 9, l.total(), moneda);
+                celdaTexto(row, 10, etiquetaMetodo(l.metodoPago()), centro);
+            }
+            autosize(pedSh, 11);
+
+            // -------- Hoja 2: Ventas (totales) --------
+            Sheet totSh = wb.createSheet("Totales");
+            tituloPagina(totSh, s, "Consolidado del período", 0, 3);
+            var t = data.totales();
+            int rr = 2;
+            rr = par(totSh, s, rr, "Cantidad de pedidos", String.valueOf(t.cantidadPedidos()));
+            rr = par(totSh, s, rr, "Cancelados", String.valueOf(t.cantidadPedidosCancelados()));
+            rr = parCop(totSh, s, rr, "Subtotal bruto (sin descuentos)", t.subtotalBruto());
+            rr = parCop(totSh, s, rr, "Total descuentos aplicados", t.totalDescuentos());
+            rr = parCop(totSh, s, rr, "Total domicilios", t.totalDomicilios());
+            rr = parCop(totSh, s, rr, "Total facturado", t.totalFacturado());
+            rr = parCop(totSh, s, rr, "Ticket promedio", t.ticketPromedio());
+            rr = parCop(totSh, s, rr, "Total reembolsos", t.totalReembolsos());
+            autosize(totSh, 3);
+
+            // -------- Hoja 3: Descuentos --------
+            Sheet descSh = wb.createSheet("Descuentos");
+            tituloPagina(descSh, s, "Descuentos aplicados", 0, 4);
+            int rd = 2;
+            headerRow(descSh, s, rd++, "Tipo", "Cantidad", "Total descontado");
+            for (var d : data.descuentosPorTipo()) {
+                Row row = descSh.createRow(rd++);
+                XSSFCellStyle color = tint(wb, s.bordeIzq, colorDescuento(d.codigo()));
+                celdaTexto(row, 0, d.etiqueta(), color);
+                celdaNumero(row, 1, d.cantidadPedidos(), s.bordeCentro);
+                celdaCop(row, 2, d.montoDescontado(), s.bordeMonedaDer);
+            }
+            autosize(descSh, 3);
+
+            // -------- Hoja 4: Pagos por método --------
+            Sheet payShaSh = wb.createSheet("Pagos por metodo");
+            tituloPagina(payShaSh, s, "Pagos por método", 0, 4);
+            int rp = 2;
+            headerRow(payShaSh, s, rp++, "Método", "Cantidad", "Monto");
+            for (var pm : data.pagosPorMetodo()) {
+                Row row = payShaSh.createRow(rp++);
+                XSSFCellStyle color = tint(wb, s.bordeIzq, colorMetodo(pm.metodo()));
+                celdaTexto(row, 0, etiqueta(pm.metodo()), color);
+                celdaNumero(row, 1, pm.cantidadPagos(), s.bordeCentro);
+                celdaCop(row, 2, pm.monto(), s.bordeMonedaDer);
+            }
+            autosize(payShaSh, 3);
+
+            // -------- Hoja 5: Reembolsos --------
+            Sheet refSh = wb.createSheet("Reembolsos");
+            tituloPagina(refSh, s, "Reembolsos (cancelados pagados)", 0, 5);
+            int rf = 2;
+            headerRow(refSh, s, rf++, "Fecha", "Código", "Cliente", "Plan", "Monto");
+            for (var re : data.reembolsos()) {
+                Row row = refSh.createRow(rf++);
+                celdaTexto(row, 0, re.fechaCancelacion() != null ? re.fechaCancelacion().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", s.bordeIzq);
+                celdaTexto(row, 1, re.codigoQr(), s.bordeCentro);
+                celdaTexto(row, 2, re.cliente(), s.bordeIzq);
+                celdaTexto(row, 3, re.planNombre(), s.bordeIzq);
+                celdaCop(row, 4, re.montoReembolsado(), s.bordeMonedaDer);
+            }
+            autosize(refSh, 5);
+
+            return aBytes(wb);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    // ------- paleta -------
+
+    private static String colorPlan(String planNombre) {
+        if (planNombre == null) return "#ffffff";
+        String n = planNombre.toLowerCase();
+        if (n.contains("domicilio")) return "#fef3c7"; // ámbar suave
+        if (n.contains("doblado")) return "#dcfce7";   // verde suave
+        if (n.contains("lavado") && n.contains("secado")) return "#dbeafe"; // azul suave
+        return "#f5f5f4"; // gris muy suave
+    }
+
+    private static String colorDescuento(String codigo) {
+        if (codigo == null) return "#ffffff";
+        return switch (codigo) {
+            case "ESTUDIANTE" -> "#dbeafe";
+            case "POLICIA" -> "#e0e7ff";
+            case "SALUD" -> "#dcfce7";
+            case "RESIDENCIAL" -> "#fef3c7";
+            default -> "#f5f5f4";
+        };
+    }
+
+    private static String colorMetodo(MetodoPago m) {
+        return switch (m) {
+            case EFECTIVO -> "#dcfce7";
+            case TRANSFERENCIA -> "#dbeafe";
+            case DATAFONO -> "#fef3c7";
+        };
+    }
+
+    private String etiquetaMetodo(String codigo) {
+        if (codigo == null) return "—";
+        if ("MIXTO".equals(codigo)) return "Mixto";
+        try { return etiqueta(MetodoPago.valueOf(codigo)); }
+        catch (Exception e) { return codigo; }
+    }
+
+    /** Duplica el estilo base y le aplica color de fondo. Cachear afuera. */
+    private static XSSFCellStyle tint(XSSFWorkbook wb, CellStyle base, String hex) {
+        XSSFCellStyle nuevo = wb.createCellStyle();
+        nuevo.cloneStyleFrom(base);
+        nuevo.setFillForegroundColor(hexColor(hex));
+        nuevo.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        return nuevo;
+    }
+
+    private static XSSFColor hexColor(String hex) {
+        String h = hex.startsWith("#") ? hex.substring(1) : hex;
+        byte[] rgb = new byte[]{
+                (byte) Integer.parseInt(h.substring(0, 2), 16),
+                (byte) Integer.parseInt(h.substring(2, 4), 16),
+                (byte) Integer.parseInt(h.substring(4, 6), 16)
+        };
+        return new XSSFColor(rgb, null);
     }
 
     // -------------------- helpers --------------------
