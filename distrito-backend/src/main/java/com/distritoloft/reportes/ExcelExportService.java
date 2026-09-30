@@ -628,6 +628,77 @@ public class ExcelExportService {
             pie.addSeries(cats, vals).setTitle("Pagos", null);
             chart3.plot(pie);
         }
+
+        // --- Tabla + Chart 4: Servicios por día de la semana ---
+        // Cuenta servicios NO cancelados agrupados por dia (Lun..Dom).
+        // Usa America/Bogota para coincidir con la vista.
+        int[] cuentasDia = new int[7]; // 0=Lunes .. 6=Domingo
+        for (var l : data.pedidos()) {
+            if (l.estado() == EstadoPedido.CANCELADO) continue;
+            if (l.fechaRecepcion() == null) continue;
+            java.time.DayOfWeek dow = l.fechaRecepcion()
+                    .atZoneSameInstant(ZONA).getDayOfWeek();
+            cuentasDia[dow.getValue() - 1]++; // Monday=1 → idx 0
+        }
+        String[] etiquetasDia = {"Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"};
+
+        int rDow = 2;
+        Row rowSubDow = sh.getRow(rDow);
+        if (rowSubDow == null) rowSubDow = sh.createRow(rDow);
+        Cell subDow = rowSubDow.createCell(9);
+        subDow.setCellValue("Servicios por día");
+        subDow.setCellStyle(s.subtitulo);
+        rDow++;
+        Row rowHeaderDow = sh.getRow(rDow);
+        if (rowHeaderDow == null) rowHeaderDow = sh.createRow(rDow);
+        Cell hDow1 = rowHeaderDow.createCell(9);
+        hDow1.setCellValue("Día");
+        hDow1.setCellStyle(s.header);
+        Cell hDow2 = rowHeaderDow.createCell(10);
+        hDow2.setCellValue("Cantidad");
+        hDow2.setCellStyle(s.header);
+        rDow++;
+        int filaInicioDow = rDow;
+        for (int i = 0; i < 7; i++) {
+            Row row = sh.getRow(rDow);
+            if (row == null) row = sh.createRow(rDow);
+            Cell c1 = row.createCell(9);
+            c1.setCellValue(etiquetasDia[i]);
+            c1.setCellStyle(s.bordeIzq);
+            Cell c2 = row.createCell(10);
+            c2.setCellValue(cuentasDia[i]);
+            c2.setCellStyle(s.bordeCentro);
+            rDow++;
+        }
+        int filaFinDow = rDow - 1;
+        sh.setColumnWidth(9, 5000);
+        sh.setColumnWidth(10, 4000);
+
+        int anclaChart4 = filaAncla + 20;
+        XSSFClientAnchor anchor4 = drawing.createAnchor(0, 0, 0, 0,
+                7, anclaChart4, 13, anclaChart4 + 18);
+        XSSFChart chart4 = drawing.createChart(anchor4);
+        chart4.setTitleText("Servicios por día de la semana");
+        chart4.setTitleOverlay(false);
+        XDDFChartLegend leg4 = chart4.getOrAddLegend();
+        leg4.setPosition(LegendPosition.BOTTOM);
+
+        XDDFCategoryAxis catDow = chart4.createCategoryAxis(AxisPosition.BOTTOM);
+        XDDFValueAxis valDow = chart4.createValueAxis(AxisPosition.LEFT);
+        valDow.setCrosses(org.apache.poi.xddf.usermodel.chart.AxisCrosses.AUTO_ZERO);
+
+        var catsDow = XDDFDataSourcesFactory.fromStringCellRange(sh,
+                new CellRangeAddress(filaInicioDow, filaFinDow, 9, 9));
+        var valsDow = XDDFDataSourcesFactory.fromNumericCellRange(sh,
+                new CellRangeAddress(filaInicioDow, filaFinDow, 10, 10));
+
+        XDDFBarChartData barDow = (XDDFBarChartData) chart4.createData(ChartTypes.BAR, catDow, valDow);
+        barDow.setBarDirection(BarDirection.COL);
+        XDDFChartData.Series serieDow = barDow.addSeries(catsDow, valsDow);
+        serieDow.setTitle("Cantidad", null);
+        var fillDow = new XDDFSolidFillProperties(XDDFColor.from(PresetColor.GOLD));
+        ((XDDFBarChartData.Series) serieDow).setFillProperties(fillDow);
+        chart4.plot(barDow);
     }
 
     // ------- paleta -------

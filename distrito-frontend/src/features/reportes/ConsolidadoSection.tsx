@@ -1,7 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { useConsolidado, type ConsolidadoResponse } from "./useConsolidado";
 import { BotonDescargarExcel } from "./BotonDescargarExcel";
-import { bgPlan, badgeDescuento, badgeMetodo, etiquetaMetodo } from "./colores";
+import { bgPlan, badgeDescuento, badgeMetodo, etiquetaMetodo, COLORES } from "./colores";
 import { etiquetaEstado } from "../../types/pedido";
 
 const formatoCOP = new Intl.NumberFormat("es-CO", {
@@ -83,6 +93,7 @@ export function ConsolidadoSection({ sedeId }: Props = {}) {
       {data && (
         <div className="space-y-6">
           <KpiConsolidado data={data} />
+          <PatronSemanal data={data} />
           <TablaPedidos data={data} />
           <BloqueDescuentos data={data} />
           <BloquePagos data={data} />
@@ -90,6 +101,77 @@ export function ConsolidadoSection({ sedeId }: Props = {}) {
         </div>
       )}
     </section>
+  );
+}
+
+// Dias en orden lunes → domingo (America/Bogota, sin timezone extra).
+const DIAS_SEMANA = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+
+function PatronSemanal({ data }: { data: ConsolidadoResponse }) {
+  const stats = useMemo(() => {
+    const buckets = DIAS_SEMANA.map((dia) => ({
+      dia,
+      cantidad: 0,
+      total: 0,
+    }));
+    for (const p of data.pedidos) {
+      if (p.estado === "CANCELADO") continue;
+      const d = new Date(p.fechaRecepcion);
+      // getDay(): 0=domingo, 1=lunes, ..., 6=sabado. Convertir a 0=lunes.
+      const idx = (d.getDay() + 6) % 7;
+      buckets[idx].cantidad += 1;
+      buckets[idx].total += p.total;
+    }
+    return buckets;
+  }, [data.pedidos]);
+
+  const total = stats.reduce((s, b) => s + b.cantidad, 0);
+  const maxCantidad = Math.max(...stats.map((b) => b.cantidad));
+  const mejorDia = stats.reduce((m, b) => (b.cantidad > m.cantidad ? b : m), stats[0]);
+
+  return (
+    <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-medium">Servicios por día de la semana</h3>
+          <p className="text-[11px] text-stone-500 mt-0.5">
+            Solo pedidos no cancelados del rango. Ayuda a identificar picos de demanda.
+          </p>
+        </div>
+        {total > 0 && (
+          <div className="text-right text-[11px] text-stone-500">
+            Día más fuerte: <strong className="text-distrito-black">{mejorDia.dia}</strong> ({mejorDia.cantidad})
+          </div>
+        )}
+      </div>
+      <div className="p-4">
+        {total === 0 ? (
+          <div className="h-[220px] flex items-center justify-center text-sm text-stone-400">
+            Sin servicios en el rango
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={stats} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
+              <XAxis dataKey="dia" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip
+                cursor={{ fill: "rgba(0,0,0,0.04)" }}
+                formatter={(v: any) => [`${v} servicio(s)`, "Cantidad"]}
+              />
+              <Bar dataKey="cantidad" radius={[4, 4, 0, 0]}>
+                {stats.map((b, i) => (
+                  <Cell
+                    key={i}
+                    fill={b.cantidad === maxCantidad ? COLORES.doradoOscuro : COLORES.dorado}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
   );
 }
 
