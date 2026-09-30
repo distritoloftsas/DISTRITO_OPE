@@ -7,6 +7,7 @@ import { usePageTitle } from "../lib/usePageTitle";
 import { useSedesKpis, useCambiarActivaSede, type SedeKpis } from "../features/sedes/useSedes";
 import { NuevaSedeModal } from "../features/sedes/NuevaSedeModal";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
+import { ClientesReporteSection } from "../features/reportes/ClientesReporteSection";
 import { ConsolidadoSection } from "../features/reportes/ConsolidadoSection";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
@@ -256,6 +257,7 @@ export function AdminPage() {
             {sedeReportesId && (
               <>
                 <ConsolidadoSection sedeId={sedeReportesId} />
+                <ClientesReporteSection sedeId={sedeReportesId} />
                 <CierreCajaSection sedeId={sedeReportesId} />
                 <VentasSection sedeId={sedeReportesId} />
                 <ConsumoInsumosSection sedeId={sedeReportesId} />

@@ -2,6 +2,7 @@ package com.distritoloft.reportes;
 
 import com.distritoloft.auth.CustomUserDetails;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ClientesReporteResponse;
 import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
@@ -102,6 +103,29 @@ public class ReportesController {
         ConsolidadoResponse data = service.consolidado(principal, desde, hasta, sedeId);
         byte[] bytes = excelService.consolidadoXlsx(data);
         String filename = "consolidado-" + data.desde() + "_" + data.hasta() + ".xlsx";
+        return xlsxResponse(filename, bytes);
+    }
+
+    @GetMapping("/clientes")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ClientesReporteResponse reporteClientes(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        return service.reporteClientes(principal, desde, hasta, sedeId);
+    }
+
+    @GetMapping(value = "/clientes.xlsx", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @PreAuthorize("hasAnyRole('GERENTE_SEDE', 'SUPER_ADMIN')")
+    public ResponseEntity<byte[]> reporteClientesXlsx(
+            @AuthenticationPrincipal CustomUserDetails principal,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long sedeId) {
+        ClientesReporteResponse data = service.reporteClientes(principal, desde, hasta, sedeId);
+        byte[] bytes = excelService.reporteClientesXlsx(data);
+        String filename = "clientes-" + data.desde() + "_" + data.hasta() + ".xlsx";
         return xlsxResponse(filename, bytes);
     }
 

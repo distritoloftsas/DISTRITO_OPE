@@ -14,6 +14,7 @@ import com.distritoloft.pedido.PagoRepository;
 import com.distritoloft.pedido.PedidoRepository;
 import com.distritoloft.pedido.Pedido;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ClientesReporteResponse;
 import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
@@ -388,6 +389,60 @@ public class ReportesService {
         return new ConsolidadoResponse(
                 desdeReal, hastaReal, sede.getId(), sede.getNombre(),
                 totales, lineas, descuentos, pagosMetodos, reembolsos);
+    }
+
+    @Transactional(readOnly = true)
+    public ClientesReporteResponse reporteClientes(CustomUserDetails principal,
+                                                    LocalDate desde, LocalDate hasta,
+                                                    Long sedeIdParam) {
+        Usuario actual = cargarUsuarioActual(principal);
+        if (actual.getRol() != RolUsuario.GERENTE_SEDE
+                && actual.getRol() != RolUsuario.SUPER_ADMIN) {
+            throw new ReglaNegocioException("Solo gerentes de sede y super admin pueden ver este reporte.");
+        }
+
+        LocalDate desdeReal = desde != null ? desde : LocalDate.now(ZONA_COLOMBIA).withDayOfMonth(1);
+        LocalDate hastaReal = hasta != null ? hasta : LocalDate.now(ZONA_COLOMBIA);
+        if (hastaReal.isBefore(desdeReal)) {
+            throw new ReglaNegocioException("La fecha hasta no puede ser anterior a desde.");
+        }
+
+        Long sedeId = resolverSede(actual, sedeIdParam);
+        Sede sede = sedeRepository.findById(sedeId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sede no encontrada: " + sedeId));
+
+        OffsetDateTime od = desdeReal.atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+        OffsetDateTime oh = hastaReal.plusDays(1).atStartOfDay(ZONA_COLOMBIA).toOffsetDateTime();
+
+        // Reusa el join fetch de cliente + plan del consolidado.
+        List<Pedido> pedidos = pedidoRepository.consolidadoPorSedeEnRango(sedeId, od, oh);
+
+        List<ClientesReporteResponse.LineaClienteServicio> nuevos = new java.util.ArrayList<>();
+        List<ClientesReporteResponse.LineaClienteServicio> recurrentes = new java.util.ArrayList<>();
+
+        for (Pedido p : pedidos) {
+            if (p.getCliente() == null) continue;
+            OffsetDateTime creadoEn = p.getCliente().getCreadoEn();
+            boolean esNuevo = creadoEn != null
+                    && !creadoEn.isBefore(od)
+                    && creadoEn.isBefore(oh);
+            var linea = new ClientesReporteResponse.LineaClienteServicio(
+                    p.getId(),
+                    p.getCodigoQr(),
+                    p.getCliente().getNombre(),
+                    p.getCliente().getTelefono(),
+                    p.getFechaRecepcion(),
+                    p.getPlan() != null ? p.getPlan().getNombre() : "",
+                    creadoEn);
+            if (esNuevo) {
+                nuevos.add(linea);
+            } else {
+                recurrentes.add(linea);
+            }
+        }
+
+        return new ClientesReporteResponse(
+                desdeReal, hastaReal, sede.getId(), sede.getNombre(), nuevos, recurrentes);
     }
 
     private Long resolverSede(Usuario actual, Long sedeIdParam) {

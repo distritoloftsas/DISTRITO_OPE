@@ -3,6 +3,7 @@ package com.distritoloft.reportes;
 import com.distritoloft.common.enums.EstadoPedido;
 import com.distritoloft.common.enums.MetodoPago;
 import com.distritoloft.reportes.dto.CierreCajaResponse;
+import com.distritoloft.reportes.dto.ClientesReporteResponse;
 import com.distritoloft.reportes.dto.ConsolidadoResponse;
 import com.distritoloft.reportes.dto.ConsumoInsumosResponse;
 import com.distritoloft.reportes.dto.VentasResponse;
@@ -400,6 +401,62 @@ public class ExcelExportService {
 
             // -------- Hoja 6: Gráficas --------
             construirHojaGraficas(wb, s, data);
+
+            return aBytes(wb);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    public byte[] reporteClientesXlsx(ClientesReporteResponse data) {
+        try (XSSFWorkbook wb = new XSSFWorkbook()) {
+            Estilos s = new Estilos(wb);
+
+            // Hoja 1: Clientes nuevos
+            Sheet nvsSh = wb.createSheet("Clientes nuevos");
+            tituloPagina(nvsSh, s, "Clientes nuevos en el período", 0, 5);
+            int r = 2;
+            r = par(nvsSh, s, r, "Sede", data.sedeNombre());
+            r = par(nvsSh, s, r, "Desde", data.desde().toString());
+            r = par(nvsSh, s, r, "Hasta", data.hasta().toString());
+            r = par(nvsSh, s, r, "Total", String.valueOf(data.nuevos().size()));
+            r++;
+            headerRow(nvsSh, s, r++, "Nombre", "Teléfono", "Fecha registro", "Fecha servicio", "Código", "Servicio");
+            for (var l : data.nuevos()) {
+                Row row = nvsSh.createRow(r++);
+                celdaTexto(row, 0, l.clienteNombre(), s.bordeIzq);
+                celdaTexto(row, 1, l.clienteTelefono(), s.bordeCentro);
+                celdaTexto(row, 2, l.fechaRegistroCliente() != null
+                        ? l.fechaRegistroCliente().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", s.bordeCentro);
+                celdaTexto(row, 3, l.fechaServicio() != null
+                        ? l.fechaServicio().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", s.bordeCentro);
+                celdaTexto(row, 4, l.codigoQr(), s.bordeCentro);
+                celdaTexto(row, 5, l.planNombre(), s.bordeIzq);
+            }
+            autosize(nvsSh, 6);
+
+            // Hoja 2: Clientes recurrentes
+            Sheet recSh = wb.createSheet("Clientes recurrentes");
+            tituloPagina(recSh, s, "Clientes recurrentes en el período", 0, 5);
+            int rr = 2;
+            rr = par(recSh, s, rr, "Sede", data.sedeNombre());
+            rr = par(recSh, s, rr, "Desde", data.desde().toString());
+            rr = par(recSh, s, rr, "Hasta", data.hasta().toString());
+            rr = par(recSh, s, rr, "Total pedidos", String.valueOf(data.recurrentes().size()));
+            rr++;
+            headerRow(recSh, s, rr++, "Nombre", "Teléfono", "Fecha registro", "Fecha servicio", "Código", "Servicio");
+            for (var l : data.recurrentes()) {
+                Row row = recSh.createRow(rr++);
+                celdaTexto(row, 0, l.clienteNombre(), s.bordeIzq);
+                celdaTexto(row, 1, l.clienteTelefono(), s.bordeCentro);
+                celdaTexto(row, 2, l.fechaRegistroCliente() != null
+                        ? l.fechaRegistroCliente().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", s.bordeCentro);
+                celdaTexto(row, 3, l.fechaServicio() != null
+                        ? l.fechaServicio().atZoneSameInstant(ZONA).format(FECHA_HORA) : "", s.bordeCentro);
+                celdaTexto(row, 4, l.codigoQr(), s.bordeCentro);
+                celdaTexto(row, 5, l.planNombre(), s.bordeIzq);
+            }
+            autosize(recSh, 6);
 
             return aBytes(wb);
         } catch (IOException ex) {

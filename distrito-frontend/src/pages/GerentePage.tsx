@@ -10,6 +10,7 @@ import { NuevoEmpleadoModal } from "../features/empleados/NuevoEmpleadoModal";
 import { MantenimientoMaquinas } from "../features/maquinas/MantenimientoMaquinas";
 import { PanelMaquinas } from "../features/maquinas/PanelMaquinas";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
+import { ClientesReporteSection } from "../features/reportes/ClientesReporteSection";
 import { ConsolidadoSection } from "../features/reportes/ConsolidadoSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { VentasSection } from "../features/reportes/VentasSection";
@@ -216,7 +217,10 @@ export function GerentePage() {
         {vista === "reportes" && (
           <div className="space-y-8">
             {(usuario.rol === "GERENTE_SEDE" || usuario.rol === "SUPER_ADMIN") && (
-              <ConsolidadoSection />
+              <>
+                <ConsolidadoSection />
+                <ClientesReporteSection />
+              </>
             )}
             {tienePermiso(usuario, "VER_CIERRE_CAJA") && <CierreCajaSection />}
             {tienePermiso(usuario, "VER_REPORTES_VENTAS") && <VentasSection />}
