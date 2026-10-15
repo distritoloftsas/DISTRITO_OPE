@@ -9,6 +9,7 @@ import { NuevaSedeModal } from "../features/sedes/NuevaSedeModal";
 import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { ClientesReporteSection } from "../features/reportes/ClientesReporteSection";
 import { ConsolidadoSection } from "../features/reportes/ConsolidadoSection";
+import { EnviarResumenBoton } from "../features/reportes/EnviarResumenBoton";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
 import { ClientesTabla } from "../features/clientes/ClientesTabla";
@@ -256,6 +257,7 @@ export function AdminPage() {
 
             {sedeReportesId && (
               <>
+                <EnviarResumenBoton />
                 <ConsolidadoSection sedeId={sedeReportesId} />
                 <ClientesReporteSection sedeId={sedeReportesId} />
                 <CierreCajaSection sedeId={sedeReportesId} />

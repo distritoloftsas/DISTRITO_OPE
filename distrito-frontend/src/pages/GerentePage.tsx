@@ -13,6 +13,7 @@ import { CierreCajaSection } from "../features/reportes/CierreCajaSection";
 import { ClientesReporteSection } from "../features/reportes/ClientesReporteSection";
 import { ConsolidadoSection } from "../features/reportes/ConsolidadoSection";
 import { ConsumoInsumosSection } from "../features/reportes/ConsumoInsumosSection";
+import { EnviarResumenBoton } from "../features/reportes/EnviarResumenBoton";
 import { VentasSection } from "../features/reportes/VentasSection";
 import { KanbanBoard } from "../features/pedidos/KanbanBoard";
 import { NuevoPedidoModal } from "../features/pedidos/NuevoPedidoModal";
@@ -218,6 +219,7 @@ export function GerentePage() {
           <div className="space-y-8">
             {(usuario.rol === "GERENTE_SEDE" || usuario.rol === "SUPER_ADMIN") && (
               <>
+                <EnviarResumenBoton />
                 <ConsolidadoSection />
                 <ClientesReporteSection />
               </>
