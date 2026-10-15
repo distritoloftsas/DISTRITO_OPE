@@ -16,11 +16,17 @@ export function EnviarResumenBoton() {
   const enviar = async () => {
     setEnviando(true);
     try {
-      await api.post("/notificaciones/resumen-diario/enviar");
-      notify.exito(
-        "Correo enviado. Revisa la bandeja (y el spam las primeras veces).",
-        "Resumen diario"
+      const { data } = await api.post<{ ok: boolean; resultado: string }>(
+        "/notificaciones/resumen-diario/enviar"
       );
+      if (data.ok) {
+        notify.exito(
+          `${data.resultado}. Revisa la bandeja (y el spam las primeras veces).`,
+          "Resumen diario"
+        );
+      } else {
+        notify.error(data.resultado, "Resumen diario");
+      }
     } catch (err) {
       notify.error(mensajeDeError(err, "No se pudo enviar el resumen."));
     } finally {

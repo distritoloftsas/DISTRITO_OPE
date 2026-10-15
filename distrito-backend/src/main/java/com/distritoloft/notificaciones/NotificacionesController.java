@@ -26,11 +26,13 @@ public class NotificacionesController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Map<String, Object> enviarAhora(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha) {
+        String resultado;
         if (fecha != null) {
-            resumenDiarioService.enviarResumen(fecha);
+            resultado = resumenDiarioService.enviarResumen(fecha);
         } else {
-            resumenDiarioService.enviarResumenDeHoy();
+            resultado = resumenDiarioService.enviarResumenDeHoy();
         }
-        return Map.of("ok", true);
+        boolean ok = resultado != null && resultado.startsWith("ENVIADO");
+        return Map.of("ok", ok, "resultado", resultado);
     }
 }

@@ -55,21 +55,21 @@ public class ResumenDiarioService {
     private boolean habilitado;
 
     @Transactional(readOnly = true)
-    public void enviarResumenDeHoy() {
+    public String enviarResumenDeHoy() {
         if (!habilitado) {
             log.info("Resumen diario deshabilitado (habilitado=false).");
-            return;
+            return "DESHABILITADO (RESUMEN_DIARIO_HABILITADO=false)";
         }
         LocalDate hoy = LocalDate.now(ZONA);
-        enviarResumen(hoy);
+        return enviarResumen(hoy);
     }
 
     @Transactional(readOnly = true)
-    public void enviarResumen(LocalDate fecha) {
+    public String enviarResumen(LocalDate fecha) {
         String[] destinatarios = destinatariosArr();
         if (destinatarios.length == 0) {
             log.warn("Resumen diario sin destinatarios configurados; nada que enviar.");
-            return;
+            return "SIN_DESTINATARIOS (configura RESUMEN_DIARIO_DESTINATARIOS)";
         }
 
         OffsetDateTime desde = fecha.atStartOfDay(ZONA).toOffsetDateTime();
@@ -85,7 +85,7 @@ public class ResumenDiarioService {
                 fecha.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         String html = plantilla(fecha, htmlSedes.toString());
 
-        emailService.enviarHtml(destinatarios, asunto, html);
+        return emailService.enviarHtml(destinatarios, asunto, html);
     }
 
     private String bloqueSede(Sede sede, OffsetDateTime desde, OffsetDateTime hasta) {

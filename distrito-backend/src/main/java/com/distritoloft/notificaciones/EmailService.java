@@ -30,21 +30,22 @@ public class EmailService {
     /**
      * Envia un correo HTML a varios destinatarios. Si SMTP no esta configurado
      * (no hay JavaMailSender) o falla el envio, loguea y continua. El scheduler
-     * no debe caerse por errores de correo.
+     * no debe caerse por errores de correo. Devuelve una descripcion del
+     * resultado util para debug desde la UI.
      */
-    public void enviarHtml(String[] destinatarios, String asunto, String html) {
+    public String enviarHtml(String[] destinatarios, String asunto, String html) {
         if (destinatarios == null || destinatarios.length == 0) {
             log.warn("Email no enviado: sin destinatarios ({}).", asunto);
-            return;
+            return "SIN_DESTINATARIOS";
         }
         JavaMailSender sender = mailSenderProvider.getIfAvailable();
         if (sender == null) {
             log.warn("SMTP no configurado (JavaMailSender ausente). No se envio: {}", asunto);
-            return;
+            return "SMTP_NO_CONFIGURADO";
         }
         if (from == null || from.isBlank()) {
             log.warn("distrito.notificaciones.from no configurado. No se envio: {}", asunto);
-            return;
+            return "FROM_VACIO (configura NOTIFICACIONES_FROM en Railway)";
         }
         try {
             MimeMessage mime = sender.createMimeMessage();
@@ -55,10 +56,14 @@ public class EmailService {
             helper.setText(html, true);
             sender.send(mime);
             log.info("Correo enviado a {} destinatario(s): {}", destinatarios.length, asunto);
+            return "ENVIADO a " + destinatarios.length + " destinatario(s): "
+                    + String.join(", ", destinatarios);
         } catch (jakarta.mail.MessagingException | UnsupportedEncodingException e) {
             log.error("Error enviando correo \"{}\": {}", asunto, e.getMessage());
+            return "ERROR_MIME: " + e.getMessage();
         } catch (org.springframework.mail.MailException e) {
             log.error("Error SMTP enviando correo \"{}\": {}", asunto, e.getMessage());
+            return "ERROR_SMTP: " + e.getMessage();
         }
     }
 }
