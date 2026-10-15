@@ -17,6 +17,13 @@ distrito:
     secret: ${JWT_SECRET:cambiar-este-secreto-en-produccion-debe-ser-largo-y-aleatorio}
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+  notificaciones:
+    # En dev dejamos deshabilitado por defecto. Si quieres probar envio real,
+    # setea RESUMEN_DIARIO_HABILITADO=true y configura SMTP_* + NOTIFICACIONES_FROM.
+    from: ${NOTIFICACIONES_FROM:}
+    resumen-diario:
+      habilitado: ${RESUMEN_DIARIO_HABILITADO:false}
+      destinatarios: ${RESUMEN_DIARIO_DESTINATARIOS:}
 
 logging:
   level:

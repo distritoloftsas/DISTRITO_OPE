@@ -9,6 +9,20 @@
 # desconocida, probable conflicto con la inicializacion temprana de
 # Hikari). El binding automatico evita el problema.
 spring:
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
   datasource:
     # TEMPORAL: hardcoded para que el deploy arranque. Las env vars de
     # Railway estan presentes pero no llegan al proceso por alguna razon.
@@ -30,6 +44,13 @@ distrito:
   cors:
     # Si el env var llega, gana. Si no, default a la URL de prod.
     allowed-origins: ${CORS_ORIGINS:https://app.distritoloft.com}
+  notificaciones:
+    # Remitente del correo (debe coincidir con SMTP_USERNAME para Gmail).
+    from: ${NOTIFICACIONES_FROM:}
+    from-name: ${NOTIFICACIONES_FROM_NAME:Distrito Loft}
+    resumen-diario:
+      habilitado: ${RESUMEN_DIARIO_HABILITADO:true}
+      destinatarios: ${RESUMEN_DIARIO_DESTINATARIOS:arocaangela4@gmail.com}
 
 management:
   endpoint:
