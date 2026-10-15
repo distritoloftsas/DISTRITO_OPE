@@ -11,18 +11,21 @@
 spring:
   mail:
     host: ${SMTP_HOST:smtp.gmail.com}
-    port: ${SMTP_PORT:587}
+    # Default 465 con SSL. Railway suele bloquear 587; 465 a veces sí pasa.
+    port: ${SMTP_PORT:465}
     username: ${SMTP_USERNAME:}
     password: ${SMTP_PASSWORD:}
     properties:
       mail:
         smtp:
           auth: true
+          ssl:
+            enable: ${SMTP_SSL:true}
           starttls:
-            enable: true
-          connectiontimeout: 5000
-          timeout: 5000
-          writetimeout: 5000
+            enable: ${SMTP_STARTTLS:false}
+          connectiontimeout: 8000
+          timeout: 8000
+          writetimeout: 8000
   datasource:
     # TEMPORAL: hardcoded para que el deploy arranque. Las env vars de
     # Railway estan presentes pero no llegan al proceso por alguna razon.
