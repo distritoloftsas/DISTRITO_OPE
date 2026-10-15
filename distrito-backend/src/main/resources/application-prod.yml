@@ -48,7 +48,11 @@ distrito:
     # Si el env var llega, gana. Si no, default a la URL de prod.
     allowed-origins: ${CORS_ORIGINS:https://app.distritoloft.com}
   notificaciones:
-    # Remitente del correo (debe coincidir con SMTP_USERNAME para Gmail).
+    # Si RESEND_API_KEY esta set, se usa Resend (HTTPS, no bloqueado en Railway).
+    # Si no, cae al SMTP de Spring (no sirve en Railway, solo dev local).
+    resend-api-key: ${RESEND_API_KEY:}
+    # Remitente. Con Resend debe ser un correo del dominio verificado,
+    # ej. resumen@distritoloft.com.
     from: ${NOTIFICACIONES_FROM:}
     from-name: ${NOTIFICACIONES_FROM_NAME:Distrito Loft}
     resumen-diario:

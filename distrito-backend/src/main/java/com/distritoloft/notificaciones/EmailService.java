@@ -16,13 +16,16 @@ import java.nio.charset.StandardCharsets;
 public class EmailService {
 
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
+    private final ResendEmailClient resendClient;
     private final String from;
     private final String fromName;
 
     public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
+                        ResendEmailClient resendClient,
                         @Value("${distrito.notificaciones.from:}") String from,
                         @Value("${distrito.notificaciones.from-name:Distrito Loft}") String fromName) {
         this.mailSenderProvider = mailSenderProvider;
+        this.resendClient = resendClient;
         this.from = from;
         this.fromName = fromName;
     }
@@ -38,14 +41,23 @@ public class EmailService {
             log.warn("Email no enviado: sin destinatarios ({}).", asunto);
             return "SIN_DESTINATARIOS";
         }
-        JavaMailSender sender = mailSenderProvider.getIfAvailable();
-        if (sender == null) {
-            log.warn("SMTP no configurado (JavaMailSender ausente). No se envio: {}", asunto);
-            return "SMTP_NO_CONFIGURADO";
-        }
         if (from == null || from.isBlank()) {
             log.warn("distrito.notificaciones.from no configurado. No se envio: {}", asunto);
             return "FROM_VACIO (configura NOTIFICACIONES_FROM en Railway)";
+        }
+
+        // Preferir Resend (HTTP 443, no bloqueado por Railway) sobre SMTP.
+        if (resendClient.isConfigured()) {
+            String fromHeader = (fromName != null && !fromName.isBlank())
+                    ? fromName + " <" + from + ">"
+                    : from;
+            return resendClient.enviarHtml(fromHeader, destinatarios, asunto, html);
+        }
+
+        JavaMailSender sender = mailSenderProvider.getIfAvailable();
+        if (sender == null) {
+            log.warn("Ni Resend ni SMTP configurados. No se envio: {}", asunto);
+            return "NINGUN_PROVEEDOR_CONFIGURADO (configura RESEND_API_KEY o SMTP_*)";
         }
         try {
             MimeMessage mime = sender.createMimeMessage();

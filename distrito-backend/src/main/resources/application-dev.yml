@@ -19,7 +19,8 @@ distrito:
     allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
   notificaciones:
     # En dev dejamos deshabilitado por defecto. Si quieres probar envio real,
-    # setea RESUMEN_DIARIO_HABILITADO=true y configura SMTP_* + NOTIFICACIONES_FROM.
+    # setea RESUMEN_DIARIO_HABILITADO=true + RESEND_API_KEY + NOTIFICACIONES_FROM.
+    resend-api-key: ${RESEND_API_KEY:}
     from: ${NOTIFICACIONES_FROM:}
     resumen-diario:
       habilitado: ${RESUMEN_DIARIO_HABILITADO:false}
